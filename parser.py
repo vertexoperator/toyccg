@@ -729,7 +729,8 @@ if __name__=="__main__":
    lexicon["a"] = ["NP/N"]
    lexicon["pen"] = ["N"]
    testrun("This is a pen".split() , lexicon)
-   lexicon = Lexicon(os.path.join(__file__ , ".." ,"ccglex.en"))
+   lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) ,"ccglex.en"))
    testrun("I saw a girl with a telescope".split() , lexicon)
    testrun("The boy was there when the sun rose".split() , lexicon)
    testrun("She looks at me".split() , lexicon)
+   testrun("He conjectured and might prove completeness".split() , lexicon)
