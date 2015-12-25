@@ -467,7 +467,7 @@ def RSx(lt , rt):
     if type(lt)!=list or type(rt)!=list or type(lt[1])!=list:
         return None
     elif (lt[0],lt[1][0],rt[0])==(BwdApp,FwdApp,BwdApp) and term_eq(lt[1][2] , rt[1]) and term_eq(lt[2] , rt[2]):
-        return [BwdApp,lt[1][1],rt[2]]
+        return [BwdApp,lt[1][0],rt[2]]
     if type(lt)!=list or type(rt)!=list:
         return None
     elif lt[0].value()!="forall" and rt[0].value()!="forall":
@@ -542,7 +542,7 @@ def LSx(lt, rt):
     if type(lt)!=list or type(rt)!=list or type(rt[1])!=list:
         return None
     elif (lt[0],rt[1][0],rt[0])==(FwdApp,BwdApp,FwdApp) and term_eq(lt[1] , rt[1][2]) and term_eq(lt[2] , rt[2]):
-        return [FwdApp,rt[1][1],lt[2]]
+        return [FwdApp,rt[1][0],lt[2]]
     if type(lt)!=list or type(rt)!=list:
         return None
     elif lt[0].value()!="forall" and rt[0].value()!="forall":
@@ -626,13 +626,13 @@ def CCGChart(tokens,lexicon):
       chart[(n,n)] = [(c,tuple()) for c in lexicon.get(tok , [])]
       #-- add type raising
       rest = []
-      for cat,_ in chart.get((n,n),[]):
+      for idx0,(cat,_) in enumerate(chart.get((n,n),[])):
          assert(cat!=None),cat
          for f in combinators:
              assert(inspect.isfunction(f))
              if len(inspect.getargspec(f).args)==1:
                  cat2 = f(cat)
-                 path = (0 , f.__name__)
+                 path = (idx0 , f.__name__)
                  if cat2!=None:rest.append( (cat2 , path) )
       chart[(n,n)] = chart.get((n,n),[]) + rest
    for width in range(1,N):
@@ -702,25 +702,28 @@ class Lexicon(object):
 
 
 
+def catname(t):
+    def _catname(t):
+        if type(t)!=list:
+            return t.value()
+        elif t[0]==FwdApp:
+            return "({0}/{1})".format(_catname(t[1]) , _catname(t[2]))
+        elif t[0]==BwdApp:
+            return "({0}\\{1})".format(_catname(t[1]) , _catname(t[2]))
+        elif t[0]==FORALL:
+            return "(\\{0}->{1})".format(",".join([x.value() for x in t[1]]) , _catname(t[2]))
+        else:
+            assert(False),t
+    tmp = _catname(t)
+    if tmp[0]=="(" and tmp[-1]==")":
+        return tmp[1:-1]
+    else:
+        return tmp
+
+
+
 terminators = ["ROOT","S","S[q]","S[wq]"]
 def testrun(tokens,lexicon):
-   def _catname(t):
-       if type(t)!=list:
-           return t.value()
-       elif t[0]==FwdApp:
-           return "({0}/{1})".format(_catname(t[1]) , _catname(t[2]))
-       elif t[0]==BwdApp:
-           return "({0}\\{1})".format(_catname(t[1]) , _catname(t[2]))
-       elif t[0]==FORALL:
-           return "(\\{0}->{1})".format(",".join([x.value() for x in t[1]]) , _catname(t[2]))
-       else:
-           assert(False),t
-   def catname(t):
-       tmp = _catname(t)
-       if tmp[0]=="(" and tmp[-1]==")":
-           return tmp[1:-1]
-       else:
-           return tmp
    def decode(left_start , right_end , path , chart):
        if len(path)==0:
           assert(left_start==right_end)
@@ -728,7 +731,7 @@ def testrun(tokens,lexicon):
        elif len(path)==2:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
-          return decode(left_start,right_end , path1 , chart)
+          return (catname(cat1) , decode(left_start,right_end , path1 , chart))
        else:
           assert(len(path)==4),path
           idx1,idx2,left_end,_ = path
@@ -740,16 +743,56 @@ def testrun(tokens,lexicon):
    print("test run : tokens={0}".format(str(tokens)))
    for (topcat,path) in chart.get((0,len(tokens)-1) ,[]):
        if type(topcat)!=list and topcat.value() in terminators:
-           print( decode(0 , len(tokens)-1 , path , chart) )
+           print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
    print("")
 
 
-import os
+def tagger(tokens,lexicon):
+   def decode(left_start , right_end , path , chart):
+       ret = []
+       if len(path)==0:
+          assert(left_start==right_end)
+          return ret
+       elif len(path)==2:
+          idx = path[0]
+          cat1,path1 = chart[(left_start,right_end)][idx]
+          if left_start==right_end and len(path1)==0:
+              return [(left_start , cat1)]
+          else:
+              return decode(left_start,right_end , path1 , chart)
+       else:
+          assert(len(path)==4),path
+          idx1,idx2,left_end,_ = path
+          right_start = left_end+1
+          cat1,path1 = chart[(left_start,left_end)][idx1]
+          cat2,path2 = chart[(right_start,right_end)][idx2]
+          if left_start==left_end and len(path1)==0:
+              ret.append( (left_start,cat1) )
+          else:
+              ret.extend( decode(left_start,left_end , path1 , chart) )
+          if right_start==right_end and len(path2)==0:
+              ret.append( (right_start,cat2) )
+          else:
+              ret.extend( decode(right_start,right_end ,path2, chart) )
+          return ret
+   chart = CCGChart(tokens,lexicon)
+   for (topcat,path) in chart.get((0,len(tokens)-1) ,[]):
+       if type(topcat)!=list and topcat.value() in terminators:
+           tagsets = decode(0 , len(tokens)-1 , path , chart)
+           tagsets.sort()
+           yield [(tok,catname(c)) for (tok,(_,c)) in zip(tokens , tagsets)]
+
+
 if __name__=="__main__":
-   lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) ,"ccglex.en"))
+   import os
+   lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en"))
+   testrun("This is a pen".split(),lexicon)
    testrun("I saw a girl with a telescope".split() , lexicon)
    testrun("The boy was there when the sun rose".split() , lexicon)
    testrun("She looks at me".split() , lexicon)
    testrun("He conjectured and might prove completeness".split() , lexicon)
    testrun("Fruit flies like an arrow".split() , lexicon)
-
+   testrun("He did not rush in".split() , lexicon)
+   testrun("This is a test sentence that anyone can change".split() , lexicon)
+   testrun("The owner of this book was killed".split() , lexicon)
+   testrun("Four hours of steady work faced us".split() , lexicon)
