@@ -211,8 +211,6 @@ def findvars(term , vars):
 
 #-- right I* combinator (X/Y Y => X)
 def RApp(lt , rt):
-    if type(lt)!=list and lt.value()=="CONJ":
-        return [BwdApp , rt, rt]
     if type(lt)==list and lt[0].value()==FwdApp.value() and term_eq(lt[2],rt):
         return lt[1]
     if type(lt)!=list or type(rt)!=list:
@@ -592,22 +590,49 @@ def LT(t):
    return None
 
 
+# -- CONJ X => X\X
+def Conj(lt,rt):
+    if type(lt)!=list and lt.value()=="CONJ":
+        return [BwdApp , rt, rt]
 
 
-combinators = [LApp,RApp,LB,RB,LBx,RBx,LS,RS,LSx,RSx,LT,RT]
+combinators = [LApp,RApp,LB,RB,LBx,RBx,LS,RS,LSx,RSx,LT,RT,Conj]
 def CCGChart(tokens,lexicon):
+   def check_args(fc , path1 , path2):
+       #-- restrictions on type-raising and composition
+       if len(path2)==2 and fc==RBx and path2[1]=="LT":
+           return False
+       elif len(path1)==2 and fc==LBx and path1[1]=="RT":
+           return False
+       #-- conjunction modality
+       elif len(path2)==4 and path2[3]=="Conj" and fc!=LApp:
+           return False
+       #-- NF constraint 1 and 2
+       elif len(path1)==4 and path1[3] in ["LB","LBx",] and fc in [LApp,LB,LBx]:
+           return False
+       elif len(path1)==4 and path1[3] in ["RB","RBx"] and fc in [RApp,RB,RBx]:
+           return False
+       #-- NF constraint 5
+       elif len(path1)==2 and (fc,path1[1])in [(RApp,"RT")]:
+           return False
+       #-- NF constraint 5
+       elif len(path2)==2 and (fc,path2[1]) in [(LApp,"LT")]:
+           return False
+       else:
+           return True
    chart = {}
    N = len(tokens)
    for n,tok in enumerate( tokens ):
       chart[(n,n)] = [(c,tuple()) for c in lexicon.get(tok , [])]
       #-- add type raising
       rest = []
-      for cat,path in chart.get((n,n),[]):
+      for cat,_ in chart.get((n,n),[]):
          assert(cat!=None),cat
          for f in combinators:
              assert(inspect.isfunction(f))
              if len(inspect.getargspec(f).args)==1:
                  cat2 = f(cat)
+                 path = (0 , f.__name__)
                  if cat2!=None:rest.append( (cat2 , path) )
       chart[(n,n)] = chart.get((n,n),[]) + rest
    for width in range(1,N):
@@ -621,19 +646,20 @@ def CCGChart(tokens,lexicon):
              assert(right_start<=right_end)
              assert(left_end<N)
              assert(right_end<N)
-             for idx1,(LB,Lpath) in enumerate(chart.get((left_start,left_end),[])):
-                 for idx2,(RB,Rpath) in enumerate(chart.get((right_start,right_end),[])):
+             for idx1,(Lcat,Lpath) in enumerate(chart.get((left_start,left_end),[])):
+                 for idx2,(Rcat,Rpath) in enumerate(chart.get((right_start,right_end),[])):
                     for f in combinators:
                        assert(inspect.isfunction(f))
-                       if len(inspect.getargspec(f).args)==2:
-                          cat2 = f(LB,RB)
+                       if len(inspect.getargspec(f).args)==2 and check_args(f,Lpath,Rpath):
+                          cat2 = f(Lcat,Rcat)
                           if cat2!=None:
                               path = (idx1,idx2,left_end,f.__name__)
                               chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
              #-- add type raising
              rest = []
-             for idx,(cat,_) in enumerate(chart.get((left_start,right_end),[])):
+             for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
                  assert(cat!=None),cat
+                 if len(path0)==4 and path0[3]=="Conj":continue
                  for f in combinators:
                     assert(inspect.isfunction(f))
                     if len(inspect.getargspec(f).args)==1:
@@ -720,17 +746,10 @@ def testrun(tokens,lexicon):
 
 import os
 if __name__=="__main__":
-   lexicon = {"I":[lexparse("NP")] , "am":[lexparse("(S\\NP)/NP")] , "Mary":[lexparse("NP")]}
-   tokens = "I am Mary".split()
-   testrun(tokens , lexicon)
-   lexicon = Lexicon()
-   lexicon["This"] = ["NP"]
-   lexicon["is"] = ["(S\\NP)/NP"]
-   lexicon["a"] = ["NP/N"]
-   lexicon["pen"] = ["N"]
-   testrun("This is a pen".split() , lexicon)
    lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) ,"ccglex.en"))
    testrun("I saw a girl with a telescope".split() , lexicon)
    testrun("The boy was there when the sun rose".split() , lexicon)
    testrun("She looks at me".split() , lexicon)
    testrun("He conjectured and might prove completeness".split() , lexicon)
+   testrun("Fruit flies like an arrow".split() , lexicon)
+
