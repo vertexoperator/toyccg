@@ -608,7 +608,9 @@ def CCGChart(tokens,lexicon):
        elif len(path2)==4 and path2[3]=="Conj" and fc!=LApp:
            return False
        #-- NF constraint 1 and 2
-       elif len(path1)==4 and path1[3] in ["LB","LBx",] and fc in [LApp,LB,LBx]:
+       elif len(path1)==4 and path1[3] in ["LB","LBx"] and fc in [LB,LBx]:
+           return False
+       elif len(path2)==4 and path2[3] in ["LB","LBx"] and fc==LApp:
            return False
        elif len(path1)==4 and path1[3] in ["RB","RBx"] and fc in [RApp,RB,RBx]:
            return False
