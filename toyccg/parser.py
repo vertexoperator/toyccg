@@ -357,7 +357,7 @@ def RBx(lt , rt):
 def LB(lt , rt):
     if type(lt)!=list or type(rt)!=list:
         return None
-    elif rt[0].value()==BwdApp.value() and rt[0].value()==BwdApp.value() and term_eq(lt[1],rt[2]):
+    elif rt[0].value()==BwdApp.value() and lt[0].value()==BwdApp.value() and term_eq(lt[1],rt[2]):
         return [BwdApp,rt[1],lt[2]]
     if type(lt)!=list or type(rt)!=list:
         return None
@@ -394,8 +394,8 @@ def LB(lt , rt):
 def LBx(lt , rt):
     if type(lt)!=list or type(rt)!=list:
         return None
-    elif rt[0].value()==FwdApp.value() and rt[0].value()==BwdApp.value() and term_eq(lt[1],rt[2]):
-        return [FwdApp,lt[1],rt[2]]
+    elif lt[0].value()==FwdApp.value() and rt[0].value()==BwdApp.value() and term_eq(lt[1],rt[2]):
+        return [FwdApp,rt[1],lt[2]]
     elif lt[0].value()!="forall" and rt[0].value()!="forall":
         return None
     elif polymorphic(lt) or polymorphic(rt):
@@ -596,7 +596,10 @@ def Conj(lt,rt):
         return [BwdApp , rt, rt]
 
 
-combinators = [LApp,RApp,LB,RB,LBx,RBx,LS,RS,LSx,RSx,LT,RT,Conj]
+"""
+In English, I dont use >Bx rule(RBx)
+"""
+combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj]
 def CCGChart(tokens,lexicon):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
@@ -625,7 +628,12 @@ def CCGChart(tokens,lexicon):
    chart = {}
    N = len(tokens)
    for n,tok in enumerate( tokens ):
-      chart[(n,n)] = [(c,tuple()) for c in lexicon.get(tok , [])]
+      lexlist = []
+      if n==0:
+         lexlist = lexicon.get(tokens[0].lower(),[])
+      for c in lexicon.get(tok , []):
+         if not c in lexlist:lexlist.append(c)
+      chart[(n,n)] = [(c,tuple()) for c in lexlist]
       #-- add type raising
       rest = []
       for idx0,(cat,_) in enumerate(chart.get((n,n),[])):
@@ -654,7 +662,14 @@ def CCGChart(tokens,lexicon):
                        assert(inspect.isfunction(f))
                        if len(inspect.getargspec(f).args)==2 and check_args(f,Lpath,Rpath):
                           cat2 = f(Lcat,Rcat)
-                          if cat2!=None:
+                          #---- really needs this check? ----
+                          if cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
+                              pass
+                          elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
+                              pass
+                          elif cat2==[FwdApp , Symbol("NP") , Symbol("N")]:
+                              pass
+                          elif cat2!=None:
                               path = (idx1,idx2,left_end,f.__name__)
                               chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
              #-- add type raising
@@ -692,6 +707,8 @@ class Lexicon(object):
         return [lexparse(c) for c in cats]
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
+    def has_key(self,tok):
+        return (tok in self.static_dics)
     def get(self,_tok,defval):
         try:
            return self.__getitem__(_tok)
@@ -724,7 +741,7 @@ def catname(t):
 
 
 
-terminators = ["ROOT","S","S[q]","S[wq]"]
+terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 def testrun(tokens,lexicon):
    def decode(left_start , right_end , path , chart):
        if len(path)==0:
@@ -786,15 +803,13 @@ def tagger(tokens,lexicon):
 
 
 if __name__=="__main__":
-   import os
+   import os,sys
    lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en"))
-   testrun("This is a pen".split(),lexicon)
-   testrun("I saw a girl with a telescope".split() , lexicon)
-   testrun("The boy was there when the sun rose".split() , lexicon)
-   testrun("She looks at me".split() , lexicon)
-   testrun("He conjectured and might prove completeness".split() , lexicon)
-   testrun("Fruit flies like an arrow".split() , lexicon)
-   testrun("He did not rush in".split() , lexicon)
-   testrun("This is a test sentence that anyone can change".split() , lexicon)
-   testrun("The owner of this book was killed".split() , lexicon)
-   testrun("Four hours of steady work faced us".split() , lexicon)
+   for line in sys.stdin:
+       line = line.strip()
+       if len(line)==0:continue
+       print line
+       for tags in tagger(line[:-1].split(),lexicon):
+            print tags
+       print ""
+
