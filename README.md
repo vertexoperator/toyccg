@@ -14,11 +14,17 @@ TODO
 
 * brush up lexicons
 
-* implement "normal-form parsing"
-
 * add scrambling combinators
 
 * apply to other languages(e.g. Japanese,etc.)
+
+* add setup.py
+
+
+USAGE
+-----
+
+`python toyccg/ccgparser.py < sentences.txt`
 
 
 References
