@@ -5,90 +5,6 @@ from lexicon import *
 from ccgparser import *
 
 combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj]
-def JPChart(sentence , lexicon):
-   def check_args(fc , path1 , path2):
-       #-- restrictions on type-raising and composition
-       if len(path2)==2 and fc==RBx and path2[1]=="LT":
-           return False
-       elif len(path1)==2 and fc==LBx and path1[1]=="RT":
-           return False
-       #-- conjunction modality
-       elif len(path2)==4 and path2[3]=="Conj" and fc!=LApp:
-           return False
-       #-- NF constraint 1 and 2
-       elif len(path1)==4 and path1[3] in ["LB","LBx"] and fc in [LB,LBx]:
-           return False
-       elif len(path2)==4 and path2[3] in ["LB","LBx"] and fc==LApp:
-           return False
-       elif len(path1)==4 and path1[3] in ["RB","RBx"] and fc in [RApp,RB,RBx]:
-           return False
-       #-- NF constraint 5
-       elif len(path1)==2 and (fc,path1[1])in [(RApp,"RT")]:
-           return False
-       #-- NF constraint 5
-       elif len(path2)==2 and (fc,path2[1]) in [(LApp,"LT")]:
-           return False
-       else:
-           return True
-   chart = {}
-   N = len(sentence)
-   for n in range(N+1):
-      for m in range(N+1):
-          if n>m:continue
-          chart[(n,m)] = [(c,tuple()) for c in lexicon.get(sentence[n:m+1] , [])]
-          #-- add type raising
-          rest = []
-          for idx0,(cat,_) in enumerate(chart.get((n,m),[])):
-              for f in combinators:
-                 assert(inspect.isfunction(f))
-                 if len(inspect.getargspec(f).args)==1:
-                     cat2 = f(cat)
-                     path = (idx0 , f.__name__)
-                     if cat2!=None:rest.append( (cat2 , path) )
-          chart[(n,m)] = chart.get((n,m),[]) + rest
-   for width in range(1,N):
-      for start in range(0 , N-width):
-         for partition in range(0,width):
-             left_start = start
-             left_end = start + partition
-             right_start = left_end + 1
-             right_end = start+width
-             assert(left_start<=left_end)
-             assert(right_start<=right_end)
-             assert(left_end<N)
-             assert(right_end<N)
-             for idx1,(Lcat,Lpath) in enumerate(chart.get((left_start,left_end),[])):
-                 for idx2,(Rcat,Rpath) in enumerate(chart.get((right_start,right_end),[])):
-                    for f in combinators:
-                       assert(inspect.isfunction(f))
-                       if len(inspect.getargspec(f).args)==2 and check_args(f,Lpath,Rpath):
-                          cat2 = f(Lcat,Rcat)
-                          #---- really needs this check? ----
-                          if cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
-                              pass
-                          elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
-                              pass
-                          elif cat2==[FwdApp , Symbol("NP") , Symbol("N")]:
-                              pass
-                          elif cat2!=None:
-                              path = (idx1,idx2,left_end,f.__name__)
-                              chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
-             #-- add type raising
-             rest = []
-             for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
-                 assert(cat!=None),cat
-                 if len(path0)==4 and path0[3]=="Conj":continue
-                 for f in combinators:
-                    assert(inspect.isfunction(f))
-                    if len(inspect.getargspec(f).args)==1:
-                       cat2 = f(cat)
-                       if cat2!=None:
-                            path = (idx,f.__name__)
-                            rest.append( (cat2 , path) )
-             chart[(left_start ,right_end)] = chart.get((left_start,right_end),[]) + rest
-   return chart
-
-
 terminators = ["ROOT","S"]
 
 def jptest(sentence,lexicon):
@@ -118,7 +34,7 @@ def jptest(sentence,lexicon):
           else:
               ret.extend( decode(right_start,right_end ,path2, chart) )
           return ret
-   chart = JPChart(sentence,lexicon)
+   chart = CCGChart(sentence,lexicon)
    print(u"test run : sentence={0}".format(sentence))
    for (topcat,path) in chart.get((0,len(sentence)-1) ,[]):
        if type(topcat)!=list and topcat.value() in terminators:
@@ -141,6 +57,7 @@ VP[term]:終止形
 """
 if __name__=="__main__":
    lexicon = {}
+   lexicon[u"。"] = [lexparse("ROOT\\S")]
    lexicon[u"私"] = [Symbol("N")]
    lexicon[u"彼"] = [Symbol("N")]
    lexicon[u"それ"] = [Symbol("N")]
@@ -231,6 +148,6 @@ if __name__=="__main__":
    jptest(u"彼は私を知らない",lexicon)
    jptest(u"私や彼は行かない",lexicon)
    jptest(u"私は赤い電車を見た",lexicon)
-   jptest(u"私は電車で行きます",lexicon)
-   jptest(u"私は電車で行く",lexicon)
+   jptest(u"私は電車で行きます。",lexicon)
+   jptest(u"私は電車で行く。",lexicon)
    jptest(u"私は寝て驚いた",lexicon)

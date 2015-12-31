@@ -1,0 +1,9 @@
+New York	NP,N/N
+Los Angels	NP,N/N
+in terms of	(S\NP)\(S\NP)
+go to	(S\NP)/NP
+went to	(S\NP)/NP
+goes to	(S\NP)/NP
+get rid of	(S\NP)/NP
+in spite of	(S/S)/NP,((S\NP)\(S\NP))/NP
+in front of	((S\NP)\(S\NP))/NP

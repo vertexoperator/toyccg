@@ -635,24 +635,19 @@ def CCGChart(tokens,lexicon):
            return True
    chart = {}
    N = len(tokens)
-   for n,tok in enumerate( tokens ):
-      lexlist = []
-      if n==0:
-         lexlist = lexicon.get(tokens[0].lower(),[])
-      for c in lexicon.get(tok , []):
-         if not c in lexlist:lexlist.append(c)
-      chart[(n,n)] = [(c,tuple()) for c in lexlist]
-      #-- add type raising
-      rest = []
-      for idx0,(cat,_) in enumerate(chart.get((n,n),[])):
-         assert(cat!=None),tokens[n]
-         for f in combinators:
-             assert(inspect.isfunction(f))
-             if len(inspect.getargspec(f).args)==1:
-                 cat2 = f(cat)
-                 path = (idx0 , f.__name__)
-                 if cat2!=None:rest.append( (cat2 , path) )
-      chart[(n,n)] = chart.get((n,n),[]) + rest
+   for n in range(N):
+      for m in range(n,N):
+          chart[(n,m)] = [(c,tuple()) for c in lexicon.get(tokens[n:m+1] , [])]
+          #-- add type raising
+          rest = []
+          for idx0,(cat,_) in enumerate(chart.get((n,m),[])):
+              for f in combinators:
+                  assert(inspect.isfunction(f))
+                  if len(inspect.getargspec(f).args)==1:
+                     cat2 = f(cat)
+                     path = (idx0 , f.__name__)
+                     if cat2!=None:rest.append( (cat2 , path) )
+          chart[(n,m)] = chart.get((n,m),[]) + rest
    for width in range(1,N):
       for start in range(0 , N-width):
          for partition in range(0,width):
@@ -698,34 +693,42 @@ def CCGChart(tokens,lexicon):
 
 
 class Lexicon(object):
-    def __init__(self, filename=None):
+    def __init__(self, worddic=None , phrasedic=None):
         self.static_dics = {}
-        if filename!=None:
-             for line in open(filename):
+        if worddic!=None:
+             for line in open(worddic):
                  line = line.strip()
                  if len(line)==0:continue
                  tok,_,cats = line.split('\t')
                  self.static_dics[tok] = [c for c in cats.split(",")]
-    def __getitem__(self,tok):
-        cats = self.static_dics.get(tok)
-        if re.match(r'\d+$',tok):
-             cats.append( "NP" )
-             cats.append( "NP/N[pl]" )
-             cats.append( "NP/N" )
+        if phrasedic!=None:
+             for line in open(phrasedic):
+                 line = line.strip()
+                 if len(line)==0:continue
+                 tok,cats = line.split('\t')
+                 self.static_dics[tok] = [c for c in cats.split(",")]
+    def __getitem__(self,toklist):
+        if len(toklist)==1:
+            cats = self.static_dics.get(toklist[0] , [])
+            if len(cats)==0:
+                cats = self.static_dics.get(toklist[0].lower() , [])
+            if re.match(r'\d+$',toklist[0]):
+                cats.append( "NP" )
+                cats.append( "NP/N[pl]" )
+                cats.append( "NP/N" )
+        else:
+            cats = self.static_dics.get(" ".join(toklist) , [])
+            if len(cats)==0:
+                cats = self.static_dics.get(" ".join(toklist).lower() , [])
+        assert(type(cats)==list),toklist
         return [lexparse(c) for c in cats]
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
     def has_key(self,tok):
         return (tok in self.static_dics)
-    def get(self,_tok,defval):
-        try:
-           return self.__getitem__(_tok)
-        except:
-           pass
-        try:
-           return self.__getitem__(_tok.lower())
-        except:
-           return [lexparse(c) for c in defval]
+    def get(self,toklist,defval):
+        return self.__getitem__(toklist)
+
 
 
 
@@ -753,8 +756,7 @@ terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 def testrun(tokens,lexicon):
    def decode(left_start , right_end , path , chart):
        if len(path)==0:
-          assert(left_start==right_end)
-          return tokens[left_start]
+          return " ".join(tokens[left_start:right_end+1])
        elif len(path)==2:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
@@ -778,13 +780,12 @@ def tagger(tokens,lexicon):
    def decode(left_start , right_end , path , chart):
        ret = []
        if len(path)==0:
-          assert(left_start==right_end)
           return ret
        elif len(path)==2:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
-          if left_start==right_end and len(path1)==0:
-              return [(left_start , cat1)]
+          if len(path1)==0:
+              return [(left_start , right_end , cat1)]
           else:
               return decode(left_start,right_end , path1 , chart)
        else:
@@ -793,12 +794,12 @@ def tagger(tokens,lexicon):
           right_start = left_end+1
           cat1,path1 = chart[(left_start,left_end)][idx1]
           cat2,path2 = chart[(right_start,right_end)][idx2]
-          if left_start==left_end and len(path1)==0:
-              ret.append( (left_start,cat1) )
+          if len(path1)==0:
+              ret.append( (left_start,left_end,cat1) )
           else:
               ret.extend( decode(left_start,left_end , path1 , chart) )
-          if right_start==right_end and len(path2)==0:
-              ret.append( (right_start,cat2) )
+          if len(path2)==0:
+              ret.append( (right_start,right_end , cat2) )
           else:
               ret.extend( decode(right_start,right_end ,path2, chart) )
           return ret
@@ -807,12 +808,18 @@ def tagger(tokens,lexicon):
        if type(topcat)!=list and topcat.value() in terminators:
            tagsets = decode(0 , len(tokens)-1 , path , chart)
            tagsets.sort()
-           yield [(tok,catname(c)) for (tok,(_,c)) in zip(tokens , tagsets)]
+           tmp = []
+           for (s,e,c) in tagsets:
+                tmp.append( (" ".join(tokens[s:e+1]),catname(c)) )
+           yield tmp
+
 
 
 if __name__=="__main__":
    import os,sys
-   lexicon = Lexicon(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en"))
+   dic1 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en")
+   dic2 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "phrases.en")
+   lexicon = Lexicon(dic1,dic2)
    for line in sys.stdin:
        line = line.strip()
        if len(line)==0:continue
