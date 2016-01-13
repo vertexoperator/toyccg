@@ -1,9 +1,34 @@
 New York	NP,N/N
 Los Angels	NP,N/N
+Hilbert space	NP,N
+Hilbert spaces	NP,N[pl]
+vector space	NP,N
+inner product	NP,N
 in terms of	(S\NP)\(S\NP)
 go to	(S\NP)/NP
 went to	(S\NP)/NP
 goes to	(S\NP)/NP
+look at	(S\NP)/NP
+looks at	(S\NP)/NP
+looked at	(S\NP)/NP
+speak to	(S\NP)/NP
+speaks to	(S\NP)/NP
+spoke to	(S\NP)/NP
+turn on	(S\NP)/NP
+turns on	(S\NP)/NP
+turned on	(S\NP)/NP
 get rid of	(S\NP)/NP
 in spite of	(S/S)/NP,((S\NP)\(S\NP))/NP
 in front of	((S\NP)\(S\NP))/NP
+is able to	(S\NP)/(S\NP)
+was able to	(S\NP)/(S\NP)
+be able to	(S\NP)/(S\NP)
+are able to	(S\NP)/(S\NP)
+were able to	(S\NP)/(S\NP)
+in vivo	(S\NP)\(S\NP),N/N,NP/N,NP/N[pl],N[pl]/N[pl]
+in vitro	(S\NP)\(S\NP),N/N,NP/N,NP/N[pl],N[pl]/N[pl]
+in silico	(S\NP)\(S\NP),N/N,NP/N,NP/N[pl],N[pl]/N[pl]
+out of date	VP[adj]
+according to	(S/S)/NP
+but for	((S\NP)\(S\NP))/NP
+by means of	((S\NP)\(S\NP))/NP

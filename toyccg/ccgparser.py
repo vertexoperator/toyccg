@@ -604,8 +604,23 @@ def Swap(lt,rt):
          return Symbol("NP")
 
 
+
 """
-In English, I dont use >Bx rule(RBx)
+Permuted functional composition rules
+>CB rule   Y/Z:g  X/Y:f => X/Z:\a->f(g a)
+<CB rule   X\Y:f  Y\Z:g => X\Z:\a->f(g a)
+"""
+def RCB(lt , rt):
+    return RB(rt , lt)
+
+
+#-- X\Y Y\Z => X\Z
+def LCB(lt , rt):
+    return LB(rt , lt)
+
+
+"""
+In English, I do not use >Bx rule(RBx)
 """
 combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj,Swap]
 def CCGChart(tokens,lexicon):
@@ -709,19 +724,21 @@ class Lexicon(object):
                  self.static_dics[tok] = [c for c in cats.split(",")]
     def __getitem__(self,toklist):
         if len(toklist)==1:
-            cats = self.static_dics.get(toklist[0] , [])
-            if len(cats)==0:
-                cats = self.static_dics.get(toklist[0].lower() , [])
-            if re.match(r'\d+$',toklist[0]):
+            w = toklist[0]
+            cats = self.static_dics.get(w , [])
+            cats.extend( self.static_dics.get(w.lower() , []) )
+            if re.match(r'\d+$',w):
                 cats.append( "NP" )
                 cats.append( "NP/N[pl]" )
                 cats.append( "NP/N" )
+            if w[-1]=="'" and w[-2]=="s": #-- e.g. Americans'
+                cats.extend(["NP/N[pl]" , "NP/N"])
         else:
             cats = self.static_dics.get(" ".join(toklist) , [])
             if len(cats)==0:
                 cats = self.static_dics.get(" ".join(toklist).lower() , [])
         assert(type(cats)==list),toklist
-        return [lexparse(c) for c in cats]
+        return (map(lexparse,list(set([c for c in cats if type(c)==str])))+[c for c in cats if type(c)!=str])
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
     def has_key(self,tok):
@@ -815,16 +832,76 @@ def tagger(tokens,lexicon):
 
 
 
+"""
+>>> list(tokenize('This is a pen. That is a desk. What\'s your name?'))
+[['This', 'is', 'a', 'pen', '.'], ['That', 'is', 'a', 'desk', '.'], ['What', "'s", 'your', 'name', '?']]
+
+
+"""
+def tokenize(s):
+    tokens = []
+    tmp = []
+    for n,c in enumerate(s):
+        if ord(c)>=ord('a') and ord(c)<=ord('z'):
+           tmp.append(c)
+        elif ord(c)>=ord('A') and ord(c)<=ord('Z'):
+           tmp.append(c)
+        elif ord(c)>=ord('0') and ord(c)<=ord('9'):
+           tmp.append(c)
+        elif c=="-":
+           tmp.append(c)
+        elif c==' ':
+           if len(tmp)>0:
+                tokens.append( "".join(tmp) )
+                tmp = []
+                if tokens[-1]==".":
+                     yield tokens
+                     tokens = []
+        elif c=='.':
+           if len(tmp)>0 and tmp[-1]!=".":
+                w = "".join(tmp)
+                tmp = []
+                if w in ["Mr","Mrs","Ms","Mt","St"]:
+                   tokens.append( w+c )
+                else:
+                   tokens.append( w )
+                   tmp = [c]
+           else:
+                tmp.append(c)
+        elif c in ['?' , '!']:
+           if len(tmp)>0:
+               tokens.append( "".join(tmp) )
+               tmp = []
+           tokens.append( c )
+           yield tokens
+           tokens = []
+        elif c=="'":
+           tmp.append( c )
+        else:
+           if len(tmp)>0:
+               tokens.append( "".join(tmp) )
+               tmp = []
+           tokens.append(c)
+    if len(tmp)>0:
+       tokens.append( "".join(tmp) )
+    if len(tokens)>0:
+       yield tokens
+
+
+
 if __name__=="__main__":
    import os,sys
    dic1 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en")
    dic2 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "phrases.en")
    lexicon = Lexicon(dic1,dic2)
+   lexicon['.'] = ["ROOT\\S","ROOT\\S[imp]"]
+   lexicon['?'] = ["ROOT\\S[q]","ROOT\\S[wq]"]
+   var = gensym.next()
+   lexicon[","] = [ "S/S" ]
    for line in sys.stdin:
        line = line.strip()
        if len(line)==0:continue
-       print line
-       for tags in tagger(line[:-1].split(),lexicon):
-            print tags
+       for tokens in tokenize(line):
+           testrun(tokens,lexicon)
        print ""
 
