@@ -424,8 +424,11 @@ def LBx(lt , rt):
                  return NB
     return None
 
-
-#-- (X/Y)/Z Y/Z => X/Z
+"""
+Starling bird/functional substitution
+(X/Y)/Z Y/Z => X/Z
+S f g x = f x (g x)
+"""
 def RS(lt, rt):
     if type(lt)!=list or type(rt)!=list or type(lt[1])!=list:
         return None
@@ -462,42 +465,6 @@ def RS(lt, rt):
     return None
 
 
-#-- (X/Y)\Z Y\Z => X\Z
-def RSx(lt , rt):
-    if type(lt)!=list or type(rt)!=list or type(lt[1])!=list:
-        return None
-    elif (lt[0],lt[1][0],rt[0])==(BwdApp,FwdApp,BwdApp) and term_eq(lt[1][2] , rt[1]) and term_eq(lt[2] , rt[2]):
-        return [BwdApp,lt[1][0],rt[2]]
-    if type(lt)!=list or type(rt)!=list:
-        return None
-    elif lt[0].value()!="forall" and rt[0].value()!="forall":
-        return None
-    elif polymorphic(lt) or polymorphic(rt):
-        return None
-    else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
-        oldvars = []
-        if lt[0].value()=="forall":
-            NB = lt
-            LB = NB[2]
-            oldvars = NB[1] + oldvars
-        else:
-            LB = lt
-        if rt[0].value()=="forall":
-            NB = rt
-            RB = NB[2]
-            oldvars = NB[1] + oldvars
-        else:
-            RB = rt
-            mgu = unify([([BwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
-    return None
-
 
 #-- Y\Z (X\Y)\Z => X\Z
 def LS(lt, rt):
@@ -527,6 +494,44 @@ def LS(lt, rt):
         else:
             RB = rt
             mgu = unify([([BwdApp , [BwdApp , var1, var2] ,var3] ,RB) , ([BwdApp , var2, var3] , LB)] , oldvars+[var1,var2,var3])
+            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
+                 nvars = findvars(NB , oldvars+[var1,var2,var3])
+                 if len(nvars)>0:
+                     NB = [FORALL , nvars , NB]
+                 return NB
+    return None
+
+
+
+#-- (X/Y)\Z Y\Z => X\Z
+def RSx(lt , rt):
+    if type(lt)!=list or type(rt)!=list or type(lt[1])!=list:
+        return None
+    elif (lt[0],lt[1][0],rt[0])==(BwdApp,FwdApp,BwdApp) and term_eq(lt[1][2] , rt[1]) and term_eq(lt[2] , rt[2]):
+        return [BwdApp,lt[1][0],rt[2]]
+    if type(lt)!=list or type(rt)!=list:
+        return None
+    elif lt[0].value()!="forall" and rt[0].value()!="forall":
+        return None
+    elif polymorphic(lt) or polymorphic(rt):
+        return None
+    else:
+        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        oldvars = []
+        if lt[0].value()=="forall":
+            NB = lt
+            LB = NB[2]
+            oldvars = NB[1] + oldvars
+        else:
+            LB = lt
+        if rt[0].value()=="forall":
+            NB = rt
+            RB = NB[2]
+            oldvars = NB[1] + oldvars
+        else:
+            RB = rt
+            mgu = unify([([BwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
             if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
                  NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
                  nvars = findvars(NB , oldvars+[var1,var2,var3])
@@ -620,9 +625,9 @@ def LCB(lt , rt):
 
 
 """
-In English, I do not use >Bx rule(RBx)
+In English, I do not use >Bx rule(RBx) , >S rule(RS) , <S rule(LS)
 """
-combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj,Swap]
+combinators = [LApp,RApp,LB,RB,LBx,LSx,RSx,LT,RT,Conj,Swap]
 def CCGChart(tokens,lexicon):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
@@ -784,12 +789,13 @@ def testrun(tokens,lexicon):
           right_start = left_end+1
           cat1,path1 = chart[(left_start,left_end)][idx1]
           cat2,path2 = chart[(right_start,right_end)][idx2]
-          return ((catname(cat1),decode(left_start,left_end , path1 , chart)) , (catname(cat2),decode(right_start,right_end , path2, chart)))
+          return (path[3],(catname(cat1),decode(left_start,left_end , path1 , chart)) , (catname(cat2),decode(right_start,right_end , path2, chart)))
    chart = CCGChart(tokens,lexicon)
    print("test run : tokens={0}".format(str(tokens)))
    for (topcat,path) in chart.get((0,len(tokens)-1) ,[]):
        if type(topcat)!=list and topcat.value() in terminators:
            print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
+           print("")
    print("")
 
 
