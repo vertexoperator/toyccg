@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import threading
 import time
-
+import sys
 
 class threadsafe_iter:
     """Takes an iterator/generator and makes it thread-safe by
@@ -20,9 +20,12 @@ class threadsafe_iter:
 def threadsafe_generator(f):
     """A decorator that takes a generator function and makes it thread-safe.
     """
-    def g(*a, **kw):
-        return threadsafe_iter(f(*a, **kw))
-    return g
+    if sys.version_info[0] == 2:
+        def g(*a, **kw):
+            return threadsafe_iter(f(*a, **kw))
+        return g
+    else:
+        return f
 
 
 @threadsafe_generator
@@ -39,8 +42,8 @@ gen_state = Counter()
 #固定文字列を受理するオートマトン
 #(nfaジェネレータ、開始状態、開始状態が受理状態でもあるかどうか)を返す
 def literal(s):
-  __states__ = [gen_state.next() for c in s]
-  __states__.append(gen_state.next())
+  __states__ = [next(gen_state) for c in s]
+  __states__.append(next(gen_state))
   def __nfa__(state , symbol):
       if state in __states__:
          idx = __states__.index(state)
@@ -67,7 +70,7 @@ def iterate(r):
 
 
 def either(r1 , r2):
-    __states__ = [gen_state.next()]
+    __states__ = [next(gen_state)]
     def __nfa__(state , symbol):
         if state==__states__[0]:
             for it in r1[0](r1[1] , symbol):yield it
@@ -109,16 +112,16 @@ def deriv(nfa , s):
       __memo__ = dict()
       __accept__ = dict()
       for n,sym in enumerate(s):
-          if not __memo__.has_key((__state__ , sym)):
-              next = set([])
+          if not ((__state__ , sym) in __memo__):
+              nextaddr = set([])
               acc = False
               for st in __state__:
                  for nextst,cont in g(st,sym):
-                     next.add( nextst )
+                     nextaddr.add( nextst )
                      acc = acc or cont
-              if len(next)==0:break
-              __memo__[ (__state__ , sym) ] = tuple(next)
-              __accept__[ tuple(next) ] = acc
+              if len(nextaddr)==0:break
+              __memo__[ (__state__ , sym) ] = tuple(nextaddr)
+              __accept__[ tuple(nextaddr) ] = acc
           __state__ = __memo__[ (__state__ , sym) ]
           if __accept__[__state__]:
               yield s[n+1:]
@@ -129,7 +132,7 @@ def deriv(nfa , s):
 
 
 def uppercase():
-   __states__ = [gen_state.next(),gen_state.next()]
+   __states__ = [next(gen_state),next(gen_state)]
    def __nfa__(state , symbol):
        if state==__states__[0] and symbol.isupper():
             yield (__states__[1] , True)
@@ -137,7 +140,7 @@ def uppercase():
 
 
 def lowercase():
-   __states__ = [gen_state.next(),gen_state.next()]
+   __states__ = [next(gen_state),next(gen_state)]
    def __nfa__(state , symbol):
        if state==__states__[0] and symbol.islower():
             yield (__states__[1] , True)

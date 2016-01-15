@@ -3,6 +3,14 @@ from lexicon import *
 import inspect
 import re
 
+#-- for python2/3 compatibility
+from io import open
+import sys
+if sys.version_info[0] == 3:
+   basestring = str
+else:
+   basestring = basestring
+
 
 """
 #-- Penn Part of Speech Tags
@@ -125,18 +133,18 @@ def unify(eqlist , vars):
                   return None
               theta1 = aux(subst_single(Lexp[1],theta) , subst_single(Rexp[1],theta))
               if theta1==None:return None
-              for (k,v) in theta1.iteritems():
+              for (k,v) in theta1.items():
                   if recursive(k,v):return None
                   theta[k] = v
               theta2 = aux(subst_single(Lexp[2],theta) , subst_single(Rexp[2],theta))
               if theta2==None:return None
-              for (k,v) in theta2.iteritems():
+              for (k,v) in theta2.items():
                   if recursive(k,v):return None
                   theta[k] = v
            else:
               theta1 = aux(subst_single(Lexp , theta) , subst_single(Rexp,theta))
               if theta1==None:return None
-              for (k,v) in theta1.iteritems():
+              for (k,v) in theta1.items():
                   if recursive(k,v):return None
                   theta[k] = v
        return theta
@@ -146,9 +154,9 @@ def unify(eqlist , vars):
        theta = solve(subst_multi(eqlist , ret))
        if theta==None:return None
        if len(theta)==0:break
-       for k,v in ret.iteritems():
+       for k,v in ret.items():
            ret[k] = subst_single(v , theta)
-       for k,v in theta.iteritems():
+       for k,v in theta.items():
            ret[k] = v
        _eqs = subst_multi(eqlist , ret)
        if _eqs==eqs:break
@@ -165,7 +173,7 @@ def term_eq(t1 , t2):
         if t1[0].value()=="forall" and t2[0].value()=="forall":
             if len(t1[1])!=len(t2[1]):return False
             Nvars = len(t1[1])
-            vars = [gensym.next() for _ in range(2*Nvars)]
+            vars = [next(gensym) for _ in range(2*Nvars)]
             Lt = subst_single(t1[2] , dict(zip([c.value() for c in t1[1]] , vars[:Nvars])))
             Rt = subst_single(t2[2] , dict(zip([c.value() for c in t2[1]] , vars[Nvars:])))
             try:
@@ -173,7 +181,7 @@ def term_eq(t1 , t2):
             except:
                 assert(False),(t1,t2,vars)
             if vmap==None:return False
-            for (k,v) in vmap.iteritems():
+            for (k,v) in vmap.items():
                 if type(v)==list:return False
                 elif not v.value().startswith("_"):return False
             return True
@@ -220,7 +228,7 @@ def RApp(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2 = gensym.next(),gensym.next()
+        var1,var2 = next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -255,7 +263,7 @@ def LApp(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2 = gensym.next(),gensym.next()
+        var1,var2 = next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -290,7 +298,7 @@ def RB(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -329,7 +337,7 @@ def RBx(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -366,7 +374,7 @@ def LB(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -401,7 +409,7 @@ def LBx(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -441,7 +449,7 @@ def RS(lt, rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -479,7 +487,7 @@ def LS(lt, rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -517,7 +525,7 @@ def RSx(lt , rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -555,7 +563,7 @@ def LSx(lt, rt):
     elif polymorphic(lt) or polymorphic(rt):
         return None
     else:
-        var1,var2,var3 = gensym.next(),gensym.next(),gensym.next()
+        var1,var2,var3 = next(gensym),next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
             NB = lt
@@ -582,15 +590,16 @@ def LSx(lt, rt):
 #-- X => forall a.a/(a\X)
 def RT(t):
    if type(t)!=list and t.value()=="NP":
-      var = gensym.next()
+      var = next(gensym)
       return [FORALL , [var] , [FwdApp , var , [BwdApp,var,t]]]
    return None
 
 
 #-- X => forall.a\(a/X)
 def LT(t):
+   assert(type(t)==list or type(t)==Symbol),repr(t)
    if (type(t)!=list and t.value() in ["NP","PP","S"]) or t==[BwdApp,Symbol("S"),Symbol("NP")]:
-      var = gensym.next()
+      var = next(gensym)
       return [FORALL , [var] , [BwdApp , var , [FwdApp,var,t]]]
    return None
 
@@ -668,6 +677,9 @@ def CCGChart(tokens,lexicon):
                      path = (idx0 , f.__name__)
                      if cat2!=None:rest.append( (cat2 , path) )
           chart[(n,m)] = chart.get((n,m),[]) + rest
+   if not all([any([len(chart.get((m0,m1),[]))>0 for (m0,m1) in chart.keys() if m0<=n and n<=m1]) for n in range(N)]):
+      return chart
+   #-- start CYK parsing
    for width in range(1,N):
       for start in range(0 , N-width):
          for partition in range(0,width):
@@ -716,13 +728,13 @@ class Lexicon(object):
     def __init__(self, worddic=None , phrasedic=None):
         self.static_dics = {}
         if worddic!=None:
-             for line in open(worddic):
+             for line in open(worddic, encoding='utf-8'):
                  line = line.strip()
                  if len(line)==0:continue
                  tok,_,cats = line.split('\t')
                  self.static_dics[tok] = [c for c in cats.split(",")]
         if phrasedic!=None:
-             for line in open(phrasedic):
+             for line in open(phrasedic, encoding='utf-8'):
                  line = line.strip()
                  if len(line)==0:continue
                  tok,cats = line.split('\t')
@@ -732,18 +744,22 @@ class Lexicon(object):
             w = toklist[0]
             cats = self.static_dics.get(w , [])
             cats.extend( self.static_dics.get(w.lower() , []) )
-            if re.match(r'\d+$',w):
+            if re.match(r'\d+$',w)!=None:
                 cats.append( "NP" )
                 cats.append( "NP/N[pl]" )
                 cats.append( "NP/N" )
+            elif re.match(r'\d+th$',w)!=None:
+                cats.extend( ["NP", "NP/N[pl]" , "NP/N" , "N/N" , "N[pl]/N[pl]"] )
             if w[-1]=="'" and w[-2]=="s": #-- e.g. Americans'
                 cats.extend(["NP/N[pl]" , "NP/N"])
+            if len(cats)==0 and w[0].isupper():  #-- guess
+                cats.extend( ["NP" , "NP/N" , "N/N", "NP/N[pl]"] )
         else:
             cats = self.static_dics.get(" ".join(toklist) , [])
             if len(cats)==0:
                 cats = self.static_dics.get(" ".join(toklist).lower() , [])
         assert(type(cats)==list),toklist
-        return (map(lexparse,list(set([c for c in cats if type(c)==str])))+[c for c in cats if type(c)!=str])
+        return ([lexparse(b) for b in set([c for c in cats if isinstance(c,basestring)])]+[c for c in cats if not isinstance(c,basestring)])
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
     def has_key(self,tok):
@@ -937,12 +953,12 @@ if __name__=="__main__":
    lexicon = Lexicon(dic1,dic2)
    lexicon['.'] = ["ROOT\\S","ROOT\\S[imp]"]
    lexicon['?'] = ["ROOT\\S[q]","ROOT\\S[wq]"]
-   var = gensym.next()
-   lexicon[","] = [ "S/S" ]
+   var = next(gensym)
+   lexicon[","] = [ "S/S" ,"(S/S)\\VP[pss]" , "(S/S)\\VP[ing]"]
    for line in sys.stdin:
        line = line.strip()
        if len(line)==0:continue
        for tokens in tokenize(line):
            testrun(tokens,lexicon)
-       print ""
+       print ("")
 
