@@ -838,6 +838,7 @@ def tagger(tokens,lexicon):
 
 
 
+
 def sentencize(s):
     if s[-1]==".":
        ls = (s+" ").split(". ")
@@ -848,7 +849,11 @@ def sentencize(s):
         if len(it.split())==1:
             tmp.append(it)
         else:
-            if len(tmp)>0 and not tmp[-1] in ["Mr","Mrs","Ms","Mt","St"]:
+            if len(tmp)==0:
+                tmp.append(it)
+            elif tmp[-1].find(".")>0:
+                tmp.append(it)
+            elif not tmp[-1] in ["Mr","Mrs","Ms","Mt","St"]:
                 x = (". ".join(tmp).strip())
                 if not x[-1] in [".","?","!"]:
                     yield (x+".")
@@ -859,7 +864,7 @@ def sentencize(s):
                 tmp.append(it)
     if len(tmp)>0:
        x = "".join(tmp).strip()
-       if x!=".":yield x
+       if x!='' and x!=".":yield x
 
 
 """
@@ -868,6 +873,10 @@ def sentencize(s):
 
 >>> list(tokenize('"The Call of Cthulhu" is a short story by American writer H. P. Lovecraft.'))
 [['"', 'The', 'Call', 'of', 'Cthulhu', '"', 'is', 'a', 'short', 'story', 'by', 'American', 'writer', 'H.', 'P.', 'Lovecraft', '.']]
+
+>>> list(tokenize('The U.S. was founded.'))
+[['The', 'U.S.', 'was', 'founded', '.']]
+
 """
 def tokenize(sents):
     for s in sentencize(sents):
@@ -888,7 +897,16 @@ def tokenize(sents):
               if len(tmp)>0:
                  tokens.append( "".join(tmp) )
                  tmp = []
-           elif c in ['?' , '!']:
+           elif c==':':
+              if n==len(s)-1 or s[n+1]==' ':
+                 tokens.append( "".join(tmp) )
+                 tmp = []
+                 tokens.append( c )
+                 yield tokens
+                 tokens = []
+              else:
+                 tmp.append(c)
+           elif c in ['?' , '!' , ';']:
               if len(tmp)>0:
                   tokens.append( "".join(tmp) )
                   tmp = []
@@ -906,6 +924,8 @@ def tokenize(sents):
           tokens.append( "".join(tmp) )
        if len(tokens)>0:
           yield tokens
+
+
 
 
 
