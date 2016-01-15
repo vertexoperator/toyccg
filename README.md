@@ -7,10 +7,16 @@ OVERVIEW
 simple English CCG Parser by CYK parsing
 
 
+Python 2.x or 3.x
+-----------------
+toyccg is tested with
+
+- python 2.7
+- pypy3  2.4.0
+
+
 TODO
 ----
-
-* implement tokenizer
 
 * brush up lexicons
 
