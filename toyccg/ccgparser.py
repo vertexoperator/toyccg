@@ -838,60 +838,75 @@ def tagger(tokens,lexicon):
 
 
 
+def sentencize(s):
+    if s[-1]==".":
+       ls = (s+" ").split(". ")
+    else:
+       ls = s.split(". ")
+    tmp = []
+    for it in ls:
+        if len(it.split())==1:
+            tmp.append(it)
+        else:
+            if len(tmp)>0 and not tmp[-1] in ["Mr","Mrs","Ms","Mt","St"]:
+                x = (". ".join(tmp).strip())
+                if not x[-1] in [".","?","!"]:
+                    yield (x+".")
+                else:
+                    yield x
+                tmp = [it]
+            else:
+                tmp.append(it)
+    if len(tmp)>0:
+       x = "".join(tmp).strip()
+       if x!=".":yield x
+
+
 """
 >>> list(tokenize('This is a pen. That is a desk. What\'s your name?'))
-[['This', 'is', 'a', 'pen', '.'], ['That', 'is', 'a', 'desk', '.'], ['What', "'s", 'your', 'name', '?']]
+[['This', 'is', 'a', 'pen', '.'], ['That', 'is', 'a', 'desk', '.'], ['What\'s", 'your', 'name', '?']]
 
-
+>>> list(tokenize('"The Call of Cthulhu" is a short story by American writer H. P. Lovecraft.'))
+[['"', 'The', 'Call', 'of', 'Cthulhu', '"', 'is', 'a', 'short', 'story', 'by', 'American', 'writer', 'H.', 'P.', 'Lovecraft', '.']]
 """
-def tokenize(s):
-    tokens = []
-    tmp = []
-    for n,c in enumerate(s):
-        if ord(c)>=ord('a') and ord(c)<=ord('z'):
-           tmp.append(c)
-        elif ord(c)>=ord('A') and ord(c)<=ord('Z'):
-           tmp.append(c)
-        elif ord(c)>=ord('0') and ord(c)<=ord('9'):
-           tmp.append(c)
-        elif c=="-":
-           tmp.append(c)
-        elif c==' ':
-           if len(tmp)>0:
-                tokens.append( "".join(tmp) )
-                tmp = []
-                if tokens[-1]==".":
-                     yield tokens
-                     tokens = []
-        elif c=='.':
-           if len(tmp)>0 and tmp[-1]!=".":
-                w = "".join(tmp)
-                tmp = []
-                if w in ["Mr","Mrs","Ms","Mt","St"]:
-                   tokens.append( w+c )
-                else:
-                   tokens.append( w )
-                   tmp = [c]
+def tokenize(sents):
+    for s in sentencize(sents):
+       tokens = []
+       tmp = []
+       for n,c in enumerate(s):
+           if ord(c)>=ord('a') and ord(c)<=ord('z'):
+              tmp.append(c)
+           elif ord(c)>=ord('A') and ord(c)<=ord('Z'):
+              tmp.append(c)
+           elif ord(c)>=ord('0') and ord(c)<=ord('9'):
+              tmp.append(c)
+           elif c=="-":
+              tmp.append(c)
+           elif c=="." and n<len(s)-1:
+              tmp.append(c)
+           elif c==' ':
+              if len(tmp)>0:
+                 tokens.append( "".join(tmp) )
+                 tmp = []
+           elif c in ['?' , '!']:
+              if len(tmp)>0:
+                  tokens.append( "".join(tmp) )
+                  tmp = []
+              tokens.append( c )
+              yield tokens
+              tokens = []
+           elif c=="'":
+              tmp.append( c )
            else:
-                tmp.append(c)
-        elif c in ['?' , '!']:
-           if len(tmp)>0:
-               tokens.append( "".join(tmp) )
-               tmp = []
-           tokens.append( c )
-           yield tokens
-           tokens = []
-        elif c=="'":
-           tmp.append( c )
-        else:
-           if len(tmp)>0:
-               tokens.append( "".join(tmp) )
-               tmp = []
-           tokens.append(c)
-    if len(tmp)>0:
-       tokens.append( "".join(tmp) )
-    if len(tokens)>0:
-       yield tokens
+              if len(tmp)>0:
+                 tokens.append( "".join(tmp) )
+                 tmp = []
+              tokens.append(c)
+       if len(tmp)>0:
+          tokens.append( "".join(tmp) )
+       if len(tokens)>0:
+          yield tokens
+
 
 
 
