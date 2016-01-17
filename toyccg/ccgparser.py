@@ -165,21 +165,20 @@ def unify(eqlist , vars):
 
 
 def term_eq(t1 , t2):
+    assert(isinstance(t1,Symbol) or type(t1)==list)
+    assert(isinstance(t2,Symbol) or type(t2)==list) 
     if type(t1)!=type(t2):
         return False
     elif type(t1)!=list and type(t2)!=list:
         return (t1==t2)
-    elif type(t1)==list and type(t2)==list:
+    else:
         if t1[0].value()=="forall" and t2[0].value()=="forall":
             if len(t1[1])!=len(t2[1]):return False
             Nvars = len(t1[1])
             vars = [next(gensym) for _ in range(2*Nvars)]
             Lt = subst_single(t1[2] , dict(zip([c.value() for c in t1[1]] , vars[:Nvars])))
             Rt = subst_single(t2[2] , dict(zip([c.value() for c in t2[1]] , vars[Nvars:])))
-            try:
-                vmap = unify([(Lt,Rt)] , vars)
-            except:
-                assert(False),(t1,t2,vars)
+            vmap = unify([(Lt,Rt)] , vars)
             if vmap==None:return False
             for (k,v) in vmap.items():
                 if type(v)==list:return False
@@ -227,7 +226,7 @@ def RApp(lt , rt):
         return None
     elif polymorphic(lt) or polymorphic(rt):
         return None
-    else:
+    elif isinstance(lt[2],list) and lt[2][0]==FwdApp:
         var1,var2 = next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
@@ -237,18 +236,16 @@ def RApp(lt , rt):
         else:
             LB = lt
         if rt[0].value()=="forall":
-            NB = rt
-            RB = NB[2]
-            oldvars = NB[1] + oldvars
+            return None
         else:
             RB = rt
-            mgu = unify([([FwdApp , var1, var2] ,LB) , (var2 , RB)] , oldvars+[var1,var2])
-            if mgu!=None and (var1.value() in mgu):
-                 NB = mgu[var1.value()]
-                 nvars = findvars(NB , oldvars+[var1,var2])
-                 if len(nvars)>0:
-                      NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , var1, var2] ,LB) , (var2 , RB)] , oldvars+[var1,var2])
+        if mgu!=None and (var1.value() in mgu):
+            NB = mgu[var1.value()]
+            nvars = findvars(NB , oldvars+[var1,var2])
+            if len(nvars)>0:
+               NB = [FORALL , nvars , NB]
+            return NB
     return None
 
 
@@ -262,7 +259,7 @@ def LApp(lt , rt):
         return None
     elif polymorphic(lt) or polymorphic(rt):
         return None
-    else:
+    elif isinstance(rt[2],list) and rt[0]==FORALL and rt[2][0]==BwdApp:
         var1,var2 = next(gensym),next(gensym)
         oldvars = []
         if lt[0].value()=="forall":
@@ -277,13 +274,13 @@ def LApp(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([(var2 , LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2])
-            if mgu!=None and (var1.value() in mgu):
-                 NB = mgu[var1.value()]
-                 nvars = findvars(NB , oldvars+[var1,var2])
-                 if len(nvars)>0:
-                      NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([(var2 , LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2])
+        if mgu!=None and (var1.value() in mgu):
+            NB = mgu[var1.value()]
+            nvars = findvars(NB , oldvars+[var1,var2])
+            if len(nvars)>0:
+               NB = [FORALL , nvars , NB]
+            return NB
     return None
 
 
@@ -312,13 +309,13 @@ def RB(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([FwdApp , var1, var2] ,LB) , ([FwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , var1, var2] ,LB) , ([FwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+            NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
+            nvars = findvars(NB , oldvars+[var1,var2,var3])
+            if len(nvars)>0:
+               NB = [FORALL , nvars , NB]
+            return NB
     return None
 
 
@@ -351,13 +348,13 @@ def RBx(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([FwdApp , var1, var2] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , var1, var2] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+           NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
+           nvars = findvars(NB , oldvars+[var1,var2,var3])
+           if len(nvars)>0:
+              NB = [FORALL , nvars , NB]
+           return NB
     return None
 
 
@@ -388,13 +385,13 @@ def LB(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([BwdApp , var2, var3] ,LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([BwdApp , var2, var3] ,LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+           NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
+           nvars = findvars(NB , oldvars+[var1,var2,var3])
+           if len(nvars)>0:
+              NB = [FORALL , nvars , NB]
+           return NB
     return None
 
 
@@ -423,13 +420,13 @@ def LBx(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([FwdApp , var2, var3] ,LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , var2, var3] ,LB) , ([BwdApp , var1, var2] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+            NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
+            nvars = findvars(NB , oldvars+[var1,var2,var3])
+            if len(nvars)>0:
+               NB = [FORALL , nvars , NB]
+            return NB
     return None
 
 """
@@ -463,13 +460,13 @@ def RS(lt, rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([FwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([FwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([FwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+           NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
+           nvars = findvars(NB , oldvars+[var1,var2,var3])
+           if len(nvars)>0:
+              NB = [FORALL , nvars , NB]
+           return NB
     return None
 
 
@@ -501,13 +498,13 @@ def LS(lt, rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([BwdApp , [BwdApp , var1, var2] ,var3] ,RB) , ([BwdApp , var2, var3] , LB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([BwdApp , [BwdApp , var1, var2] ,var3] ,RB) , ([BwdApp , var2, var3] , LB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+           NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
+           nvars = findvars(NB , oldvars+[var1,var2,var3])
+           if len(nvars)>0:
+              NB = [FORALL , nvars , NB]
+           return NB
     return None
 
 
@@ -539,13 +536,13 @@ def RSx(lt , rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([BwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([BwdApp , [FwdApp , var1, var2] ,var3] ,LB) , ([BwdApp , var2, var3] , RB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+            NB = [BwdApp , mgu[var1.value()] , mgu[var3.value()]]
+            nvars = findvars(NB , oldvars+[var1,var2,var3])
+            if len(nvars)>0:
+               NB = [FORALL , nvars , NB]
+            return NB
     return None
 
 
@@ -577,18 +574,19 @@ def LSx(lt, rt):
             oldvars = NB[1] + oldvars
         else:
             RB = rt
-            mgu = unify([([FwdApp , [BwdApp , var1, var2] ,var3] ,RB) , ([FwdApp , var2, var3] , LB)] , oldvars+[var1,var2,var3])
-            if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
-                 NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
-                 nvars = findvars(NB , oldvars+[var1,var2,var3])
-                 if len(nvars)>0:
-                     NB = [FORALL , nvars , NB]
-                 return NB
+        mgu = unify([([FwdApp , [BwdApp , var1, var2] ,var3] ,RB) , ([FwdApp , var2, var3] , LB)] , oldvars+[var1,var2,var3])
+        if mgu!=None and (var1.value() in mgu) and (var3.value() in mgu):
+           NB = [FwdApp , mgu[var1.value()] , mgu[var3.value()]]
+           nvars = findvars(NB , oldvars+[var1,var2,var3])
+           if len(nvars)>0:
+              NB = [FORALL , nvars , NB]
+           return NB
     return None
 
 
 #-- X => forall a.a/(a\X)
 def RT(t):
+   assert(type(t)==list or type(t)==Symbol),repr(t)
    if type(t)!=list and t.value()=="NP":
       var = next(gensym)
       return [FORALL , [var] , [FwdApp , var , [BwdApp,var,t]]]
@@ -598,7 +596,7 @@ def RT(t):
 #-- X => forall.a\(a/X)
 def LT(t):
    assert(type(t)==list or type(t)==Symbol),repr(t)
-   if (type(t)!=list and t.value() in ["NP","PP","S"]) or t==[BwdApp,Symbol("S"),Symbol("NP")]:
+   if (type(t)!=list and t.value() in ["NP","PP"]) or t==[BwdApp,Symbol("S"),Symbol("NP")]:
       var = next(gensym)
       return [FORALL , [var] , [BwdApp , var , [FwdApp,var,t]]]
    return None
@@ -617,7 +615,18 @@ def Swap(lt,rt):
     if lt==Symbol("NP") and rt==[FwdApp,Symbol("S"),Symbol("NP")]:
          return Symbol("NP")
 
+#-- special rules
+def Rel(lt,rt):
+    if lt!=Symbol("NP"):
+       return None
+    if rt==[BwdApp , Symbol("S[pss]") , Symbol("NP")]:
+       return lt
+    return None
 
+
+def SkipComma(lt,rt):
+    if type(rt)!=list and rt.value()=="COMMA":
+         return lt
 
 """
 Permuted functional composition rules
@@ -634,9 +643,10 @@ def LCB(lt , rt):
 
 
 """
-In English, I do not use >Bx rule(RBx) , >S rule(RS) , <S rule(LS)
+In English, I do not use >Bx(RBx) , <Bx(LBx), >S(RS) , <S(LS) , >Sx(RSx) , <Sx(LSx)
 """
-combinators = [LApp,RApp,LB,RB,LBx,LSx,RSx,LT,RT,Conj,Swap]
+combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
+terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 def CCGChart(tokens,lexicon):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
@@ -693,12 +703,15 @@ def CCGChart(tokens,lexicon):
              assert(right_end<N)
              for idx1,(Lcat,Lpath) in enumerate(chart.get((left_start,left_end),[])):
                  for idx2,(Rcat,Rpath) in enumerate(chart.get((right_start,right_end),[])):
+                    if type(Lcat)==list and type(Rcat)==list and Lcat[0]==FORALL and Rcat[0]==FORALL:continue
                     for f in combinators:
                        assert(inspect.isfunction(f))
                        if len(inspect.getargspec(f).args)==2 and check_args(f,Lpath,Rpath):
                           cat2 = f(Lcat,Rcat)
                           #---- really needs this check? ----
-                          if cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
+                          if type(cat2)==list and cat2[0]==FORALL:
+                              pass
+                          elif cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
                               pass
                           elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
                               pass
@@ -707,19 +720,23 @@ def CCGChart(tokens,lexicon):
                           elif cat2!=None:
                               path = (idx1,idx2,left_end,f.__name__)
                               chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+                              #-- is it OK?
+                              break
              #-- add type raising
-             rest = []
-             for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
-                 assert(cat!=None),cat
-                 if len(path0)==4 and path0[3]=="Conj":continue
-                 for f in combinators:
-                    assert(inspect.isfunction(f))
-                    if len(inspect.getargspec(f).args)==1:
-                       cat2 = f(cat)
-                       if cat2!=None:
-                            path = (idx,f.__name__)
-                            rest.append( (cat2 , path) )
-             chart[(left_start ,right_end)] = chart.get((left_start,right_end),[]) + rest
+             if width<N-1:
+                rest = []
+                for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
+                    assert(cat!=None),cat
+                    if len(path0)==4 and path0[3]=="Conj":continue
+                    if len(path0)==4 and path0[3]=="SkipComma":continue
+                    for f in combinators:
+                       assert(inspect.isfunction(f))
+                       if len(inspect.getargspec(f).args)==1:
+                          cat2 = f(cat)
+                          if cat2!=None:
+                              path = (idx,f.__name__)
+                              rest.append( (cat2 , path) )
+                chart.setdefault( (left_start , right_end) , []).extend(rest)
    return chart
 
 
@@ -790,7 +807,6 @@ def catname(t):
 
 
 
-terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 def testrun(tokens,lexicon):
    def decode(left_start , right_end , path , chart):
        if len(path)==0:
@@ -812,6 +828,7 @@ def testrun(tokens,lexicon):
        if type(topcat)!=list and topcat.value() in terminators:
            print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
            print("")
+           break
    print("")
 
 
@@ -952,9 +969,11 @@ if __name__=="__main__":
    dic2 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "phrases.en")
    lexicon = Lexicon(dic1,dic2)
    lexicon['.'] = ["ROOT\\S","ROOT\\S[imp]"]
+   lexicon[';'] = ["ROOT\\S"]
    lexicon['?'] = ["ROOT\\S[q]","ROOT\\S[wq]"]
    var = next(gensym)
-   lexicon[","] = [ "S/S" ,"(S/S)\\VP[pss]" , "(S/S)\\VP[ing]"]
+   lexicon[","] = [ "COMMA" ,"(S/S)\\VP[pss]" , "CONJ"]
+   lexicon["don't"] = ["(S\\NP)/(S\\NP)"]
    for line in sys.stdin:
        line = line.strip()
        if len(line)==0:continue

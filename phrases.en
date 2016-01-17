@@ -19,7 +19,7 @@ turns on	(S\NP)/NP
 turned on	(S\NP)/NP
 get rid of	(S\NP)/NP
 in spite of	(S/S)/NP,((S\NP)\(S\NP))/NP
-in front of	((S\NP)\(S\NP))/NP
+in front of	(S\S)/NP
 is able to	(S\NP)/(S\NP)
 was able to	(S\NP)/(S\NP)
 be able to	(S\NP)/(S\NP)
@@ -31,4 +31,8 @@ in silico	(S\NP)\(S\NP),N/N,NP/N,NP/N[pl],N[pl]/N[pl]
 out of date	VP[adj]
 according to	(S/S)/NP
 but for	((S\NP)\(S\NP))/NP
-by means of	((S\NP)\(S\NP))/NP
+by means of	(S\S)/NP
+because of	(S\S)/NP,(S/S)/NP,(S[q]\S[q])/NP
+how to	(S\S)/(S\NP),(S[q]\S[q])/(S\NP)
+due to	(S\S)/NP,(S[q]\S[q])/NP,(S[em]\S[em])/NP,VP[adj]/NP
+such as	(NP\NP)/NP
