@@ -24,11 +24,13 @@ USAGE
 TODO
 ----
 
+* to parse CCG more efficiently
+
 * brush up lexicons
 
-* add scrambling combinators
-
 * apply to other languages(e.g. Japanese,etc.)
+
+* semantic parsing support
 
 * add setup.py
 
