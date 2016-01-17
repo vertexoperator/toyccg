@@ -4,7 +4,7 @@ Toy CCG Parser
 OVERVIEW
 --------
 
-simple English CCG Parser by CYK parsing
+simple English CCG Parser
 
 
 Python 2.x or 3.x
