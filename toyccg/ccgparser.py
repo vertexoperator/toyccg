@@ -615,7 +615,7 @@ def Swap(lt,rt):
     if lt==Symbol("NP") and rt==[FwdApp,Symbol("S"),Symbol("NP")]:
          return Symbol("NP")
 
-#-- special rules
+#-- special rules for English
 def Rel(lt,rt):
     if lt!=Symbol("NP"):
        return None
@@ -647,36 +647,40 @@ In English, I do not use >Bx(RBx) , <Bx(LBx), >S(RS) , <S(LS) , >Sx(RSx) , <Sx(L
 """
 combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
 terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
-def CCGChart(tokens,lexicon):
+
+def buildChart(tokens,lexicon):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
-       if len(path2)==2 and fc==RBx and path2[1]=="LT":
+       if len(path2)==3 and fc==RBx and path2[1]=="LT":
            return False
-       elif len(path1)==2 and fc==LBx and path1[1]=="RT":
+       elif len(path1)==3 and fc==LBx and path1[1]=="RT":
            return False
        #-- conjunction modality
-       elif len(path2)==4 and path2[3]=="Conj" and fc!=LApp:
+       elif len(path2)==5 and path2[3]=="Conj" and fc!=LApp:
            return False
        #-- NF constraint 1 and 2
-       elif len(path1)==4 and path1[3] in ["LB","LBx"] and fc in [LB,LBx]:
+       elif len(path1)==5 and path1[3] in ["LB","LBx"] and fc in [LB,LBx]:
            return False
-       elif len(path2)==4 and path2[3] in ["LB","LBx"] and fc==LApp:
+       elif len(path2)==5 and path2[3] in ["LB","LBx"] and fc==LApp:
            return False
-       elif len(path1)==4 and path1[3] in ["RB","RBx"] and fc in [RApp,RB,RBx]:
-           return False
-       #-- NF constraint 5
-       elif len(path1)==2 and (fc,path1[1])in [(RApp,"RT")]:
+       elif len(path1)==5 and path1[3] in ["RB","RBx"] and fc in [RApp,RB,RBx]:
            return False
        #-- NF constraint 5
-       elif len(path2)==2 and (fc,path2[1]) in [(LApp,"LT")]:
+       elif len(path1)==3 and (fc,path1[1])in [(RApp,"RT")]:
+           return False
+       #-- NF constraint 5
+       elif len(path2)==3 and (fc,path2[1]) in [(LApp,"LT")]:
            return False
        else:
            return True
+   unary_combinators = [f for f in combinators if len(inspect.getargspec(f).args)==1]
+   binary_combinators = [f for f in combinators if len(inspect.getargspec(f).args)==2]
    chart = {}
+   max_depth = 0
    N = len(tokens)
    for n in range(N):
       for m in range(n,N):
-          chart[(n,m)] = [(c,tuple()) for c in lexicon.get(tokens[n:m+1] , [])]
+          chart[(n,m)] = [(c,tuple([max_depth])) for c in lexicon.get(tokens[n:m+1] , [])]
           #-- add type raising
           rest = []
           for idx0,(cat,_) in enumerate(chart.get((n,m),[])):
@@ -684,60 +688,75 @@ def CCGChart(tokens,lexicon):
                   assert(inspect.isfunction(f))
                   if len(inspect.getargspec(f).args)==1:
                      cat2 = f(cat)
-                     path = (idx0 , f.__name__)
+                     path = (idx0 , f.__name__ , max_depth)
                      if cat2!=None:rest.append( (cat2 , path) )
           chart[(n,m)] = chart.get((n,m),[]) + rest
-   if not all([any([len(chart.get((m0,m1),[]))>0 for (m0,m1) in chart.keys() if m0<=n and n<=m1]) for n in range(N)]):
-      return chart
-   #-- start CYK parsing
-   for width in range(1,N):
-      for start in range(0 , N-width):
-         for partition in range(0,width):
-             left_start = start
-             left_end = start + partition
-             right_start = left_end + 1
-             right_end = start+width
-             assert(left_start<=left_end)
-             assert(right_start<=right_end)
-             assert(left_end<N)
-             assert(right_end<N)
-             for idx1,(Lcat,Lpath) in enumerate(chart.get((left_start,left_end),[])):
-                 for idx2,(Rcat,Rpath) in enumerate(chart.get((right_start,right_end),[])):
-                    if type(Lcat)==list and type(Rcat)==list and Lcat[0]==FORALL and Rcat[0]==FORALL:continue
-                    for f in combinators:
-                       assert(inspect.isfunction(f))
-                       if len(inspect.getargspec(f).args)==2 and check_args(f,Lpath,Rpath):
-                          cat2 = f(Lcat,Rcat)
-                          #---- really needs this check? ----
-                          if type(cat2)==list and cat2[0]==FORALL:
-                              pass
-                          elif cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
-                              pass
-                          elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
-                              pass
-                          elif cat2==[FwdApp , Symbol("NP") , Symbol("N")]:
-                              pass
-                          elif cat2!=None:
-                              path = (idx1,idx2,left_end,f.__name__)
-                              chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
-                              #-- is it OK?
-                              break
-             #-- add type raising
-             if width<N-1:
-                rest = []
-                for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
-                    assert(cat!=None),cat
-                    if len(path0)==4 and path0[3]=="Conj":continue
-                    if len(path0)==4 and path0[3]=="SkipComma":continue
-                    for f in combinators:
-                       assert(inspect.isfunction(f))
-                       if len(inspect.getargspec(f).args)==1:
+   if all([any([len(chart.get((m0,m1),[]))>0 for (m0,m1) in chart.keys() if m0<=n and n<=m1]) for n in range(N)]):
+      #-- modified CYK parsing
+      for max_depth in range(0 , N):
+         new_items = []
+         all_pairs = set([])
+         for (s1,e1) in chart.keys():
+            for (s2,e2) in chart.keys():
+               if(e1-s1)<max_depth and (e2-s2)<max_depth:
+                  continue
+               elif s2==e1+1:
+                  left_start,left_end = s1,e1
+                  right_start,right_end = s2,e2
+               elif s1==e2+1:
+                  left_start,left_end = s2,e2
+                  right_start,right_end = s1,e1
+               else:
+                  continue
+               all_pairs.add( (left_start,left_end,right_start,right_end) )
+         for (left_start,left_end,right_start,right_end) in all_pairs:
+              for idx1,(Lcat,Lpath) in enumerate(chart.get((left_start,left_end),[])):
+                  Ldepth = Lpath[-1]
+                  for idx2,(Rcat,Rpath) in enumerate(chart.get((right_start,right_end),[])):
+                     Rdepth = Rpath[-1]
+                     if not((Ldepth==max_depth and Rdepth<=max_depth) or (Rdepth==max_depth and Ldepth<=max_depth)):continue
+                     if type(Lcat)==list and type(Rcat)==list and Lcat[0]==FORALL and Rcat[0]==FORALL:continue
+                     for f in binary_combinators:
+                         if check_args(f,Lpath,Rpath):
+                            cat2 = f(Lcat,Rcat)
+                            #---- really needs this check? ----
+                            if type(cat2)==list and cat2[0]==FORALL:
+                               pass
+                            elif cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
+                               pass
+                            elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
+                               pass
+                            elif cat2==[FwdApp , Symbol("NP") , Symbol("N")]:
+                               pass
+                            elif cat2!=None:
+                               path = (idx1,idx2,left_end,f.__name__,max_depth+1)
+                               if left_start==0 and right_end==N-1:
+                                  if type(cat2)!=list and cat2.value() in terminators:
+                                      chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+                                      yield chart
+                               else:
+                                  new_items.append( (left_start,right_end , cat2,path) )
+                                  #chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+                               break   #-- is it OK?
+         for (left_start,right_end,cat2,path) in new_items:
+             chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+         #-- add type raising
+         rest = []
+         for (left_start,right_end) in chart.keys():
+              if left_start!=0 or right_end!=N-1:
+                  for idx,(cat,path0) in enumerate(chart.get((left_start,right_end),[])):
+                      assert(cat!=None),cat
+                      if path0[-1]!=max_depth+1:continue
+                      if len(path0)==5 and path0[3]=="Conj":continue
+                      if len(path0)==5 and path0[3]=="SkipComma":continue
+                      for f in unary_combinators:
                           cat2 = f(cat)
                           if cat2!=None:
-                              path = (idx,f.__name__)
-                              rest.append( (cat2 , path) )
-                chart.setdefault( (left_start , right_end) , []).extend(rest)
-   return chart
+                              path = (idx , f.__name__ , max_depth+1)
+                              rest.append( (left_start,right_end , cat2 , path) )
+         for (left_start,right_end,cat2,path) in rest:
+             chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+
 
 
 
@@ -761,16 +780,19 @@ class Lexicon(object):
             w = toklist[0]
             cats = self.static_dics.get(w , [])
             cats.extend( self.static_dics.get(w.lower() , []) )
-            if re.match(r'\d+$',w)!=None:
-                cats.append( "NP" )
-                cats.append( "NP/N[pl]" )
-                cats.append( "NP/N" )
-            elif re.match(r'\d+th$',w)!=None:
-                cats.extend( ["NP", "NP/N[pl]" , "NP/N" , "N/N" , "N[pl]/N[pl]"] )
-            if w[-1]=="'" and w[-2]=="s": #-- e.g. Americans'
-                cats.extend(["NP/N[pl]" , "NP/N"])
-            if len(cats)==0 and w[0].isupper():  #-- guess
-                cats.extend( ["NP" , "NP/N" , "N/N", "NP/N[pl]"] )
+            if len(cats)==0:  #-guess
+                if re.match(r'\d+$',w)!=None:
+                    cats.extend( ["NP","NP/N[pl]" , "NP/N"] )
+                elif re.match(r'\d+th$',w)!=None:
+                    cats.extend( ["NP", "NP/N[pl]" , "NP/N" , "N/N" , "N[pl]/N[pl]"] )
+                elif w[-1]=="'" and w[-2]=="s": #-- e.g. Americans'
+                    cats.extend(["NP/N[pl]" , "NP/N"])
+                elif w[0].isupper():   #-- proper noun
+                    cats.extend( ["NP" , "NP/N" , "N/N", "NP/N[pl]"] )
+                elif w[-2:]=='ly':  #-- RB
+                    cats.extend(["S/S","S\\S","((NP\\NP)/(NP\\NP))","VP[adj]/VP[adj]","S[q]\\S[q]","S[imp]\\S[imp]"])
+                elif w[-3:] in ["ive","ble"]: #-- JJ
+                    cats.extend(["N/N","NP/N[pl]","NP/N","N[pl]/N[pl]","VP[adj]","NP/N"])
         else:
             cats = self.static_dics.get(" ".join(toklist) , [])
             if len(cats)==0:
@@ -809,65 +831,25 @@ def catname(t):
 
 def testrun(tokens,lexicon):
    def decode(left_start , right_end , path , chart):
-       if len(path)==0:
+       if len(path)==0+1:
           return " ".join(tokens[left_start:right_end+1])
-       elif len(path)==2:
+       elif len(path)==2+1:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
           return (catname(cat1) , decode(left_start,right_end , path1 , chart))
        else:
-          assert(len(path)==4),path
-          idx1,idx2,left_end,_ = path
+          assert(len(path)==4+1),path
+          idx1,idx2,left_end,_,_ = path
           right_start = left_end+1
           cat1,path1 = chart[(left_start,left_end)][idx1]
           cat2,path2 = chart[(right_start,right_end)][idx2]
           return (path[3],(catname(cat1),decode(left_start,left_end , path1 , chart)) , (catname(cat2),decode(right_start,right_end , path2, chart)))
-   chart = CCGChart(tokens,lexicon)
-   print("test run : tokens={0}".format(str(tokens)))
-   for (topcat,path) in chart.get((0,len(tokens)-1) ,[]):
-       if type(topcat)!=list and topcat.value() in terminators:
-           print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
-           print("")
-           break
-   print("")
-
-
-def tagger(tokens,lexicon):
-   def decode(left_start , right_end , path , chart):
-       ret = []
-       if len(path)==0:
-          return ret
-       elif len(path)==2:
-          idx = path[0]
-          cat1,path1 = chart[(left_start,right_end)][idx]
-          if len(path1)==0:
-              return [(left_start , right_end , cat1)]
-          else:
-              return decode(left_start,right_end , path1 , chart)
-       else:
-          assert(len(path)==4),path
-          idx1,idx2,left_end,_ = path
-          right_start = left_end+1
-          cat1,path1 = chart[(left_start,left_end)][idx1]
-          cat2,path2 = chart[(right_start,right_end)][idx2]
-          if len(path1)==0:
-              ret.append( (left_start,left_end,cat1) )
-          else:
-              ret.extend( decode(left_start,left_end , path1 , chart) )
-          if len(path2)==0:
-              ret.append( (right_start,right_end , cat2) )
-          else:
-              ret.extend( decode(right_start,right_end ,path2, chart) )
-          return ret
-   chart = CCGChart(tokens,lexicon)
-   for (topcat,path) in chart.get((0,len(tokens)-1) ,[]):
-       if type(topcat)!=list and topcat.value() in terminators:
-           tagsets = decode(0 , len(tokens)-1 , path , chart)
-           tagsets.sort()
-           tmp = []
-           for (s,e,c) in tagsets:
-                tmp.append( (" ".join(tokens[s:e+1]),catname(c)) )
-           yield tmp
+   print("test run:{0}".format(str(tokens)))
+   for chart in buildChart(tokens,lexicon):
+       topcat,path = chart[(0,len(tokens)-1)][-1]
+       print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
+       print("")
+       break
 
 
 

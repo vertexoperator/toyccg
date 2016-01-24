@@ -10,9 +10,9 @@ terminators = ["ROOT","S"]
 def jptest(sentence,lexicon):
    def decode(left_start , right_end , path , chart):
        ret = []
-       if len(path)==0:
+       if len(path)==1:
           return ret
-       elif len(path)==2:
+       elif len(path)==3:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
           if len(path1)==0:
@@ -20,30 +20,27 @@ def jptest(sentence,lexicon):
           else:
               return decode(left_start,right_end , path1 , chart)
        else:
-          assert(len(path)==4),path
-          idx1,idx2,left_end,_ = path
+          assert(len(path)==5),path
+          idx1,idx2,left_end,_,_ = path
           right_start = left_end+1
           cat1,path1 = chart[(left_start,left_end)][idx1]
           cat2,path2 = chart[(right_start,right_end)][idx2]
-          if len(path1)==0:
+          if len(path1)==1:
               ret.append( (left_start,left_end,cat1) )
           else:
               ret.extend( decode(left_start,left_end , path1 , chart) )
-          if len(path2)==0:
+          if len(path2)==1:
               ret.append( (right_start,right_end,cat2) )
           else:
               ret.extend( decode(right_start,right_end ,path2, chart) )
           return ret
-   chart = CCGChart(sentence,lexicon)
    print(u"test run : sentence={0}".format(sentence))
-   for (topcat,path) in chart.get((0,len(sentence)-1) ,[]):
-       if type(topcat)!=list and topcat.value() in terminators:
-           tagsets = decode(0 , len(sentence)-1 , path , chart)
-           tagsets.sort()
-           for (s,e,c) in tagsets:
-                print (u"{0}\t{1}".format(sentence[s:e+1],catname(c)))
-           print ("")
+   for chart in buildChart(sentence,lexicon):
+       topcat,path = chart[(0,len(sentence)-1)][-1]
+       print( (topcat.value() , decode(0 , len(sentence)-1 , path , chart)) )
+       print("")
    print("")
+
 
 
 """

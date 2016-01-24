@@ -8,6 +8,9 @@ in terms of	(S\NP)\(S\NP)
 go to	(S\NP)/NP
 went to	(S\NP)/NP
 goes to	(S\NP)/NP
+come to	(S\NP)/NP
+came to	(S\NP)/NP
+comes to	(S\NP)/NP
 look at	(S\NP)/NP
 looks at	(S\NP)/NP
 looked at	(S\NP)/NP
@@ -35,4 +38,9 @@ by means of	(S\S)/NP
 because of	(S\S)/NP,(S/S)/NP,(S[q]\S[q])/NP
 how to	(S\S)/(S\NP),(S[q]\S[q])/(S\NP)
 due to	(S\S)/NP,(S[q]\S[q])/NP,(S[em]\S[em])/NP,VP[adj]/NP
+due to the following reason	S\S
 such as	(NP\NP)/NP
+want to	(S\NP)/(S\NP)
+wants to	(S\NP)/(S\NP)
+like to	(S\NP)/(S\NP)
+likes to	(S\NP)/(S\NP)

@@ -160,7 +160,9 @@ class Symbol(object):
    def __ne__(self,other):
        return (type(other)!=type(self) or self.val!=other.val)
    def __repr__(self):
-       return "<Symbol '{0}'>".format(self.val)
+       return "Symbol('{0}')".format(self.val)
+   def __hash__(self):
+       return self.val.__hash__()
 
 
 def lexparse(_s):
