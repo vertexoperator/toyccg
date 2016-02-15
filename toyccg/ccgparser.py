@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
-from lexicon import *
+from lexicon import lexparse,Symbol
 import inspect
 import re
+import threading
+import gc
 
 #-- for python2/3 compatibility
 from io import open
@@ -57,6 +59,32 @@ WRB:疑問副詞
 BwdApp = Symbol("\\")
 FwdApp = Symbol("/")
 FORALL = Symbol("forall")
+
+
+
+class threadsafe_iter:
+    """Takes an iterator/generator and makes it thread-safe by
+    serializing call to the `next` method of given iterator/generator.
+    """
+    def __init__(self, it):
+        self.it = it
+        self.lock = threading.Lock()
+    def __iter__(self):
+        return self
+    def next(self):
+        with self.lock:
+            return self.it.next()
+
+
+def threadsafe_generator(f):
+    """A decorator that takes a generator function and makes it thread-safe.
+    """
+    if sys.version_info[0] == 2:
+        def g(*a, **kw):
+            return threadsafe_iter(f(*a, **kw))
+        return g
+    else:
+        return f
 
 
 @threadsafe_generator
@@ -776,10 +804,13 @@ class Lexicon(object):
                  tok,cats = line.split('\t')
                  self.static_dics[tok] = [c for c in cats.split(",")]
     def __getitem__(self,toklist):
-        if len(toklist)==1:
+        if len(toklist)==0:
+            return []
+        elif len(toklist)==1:
             w = toklist[0]
             cats = self.static_dics.get(w , [])
-            cats.extend( self.static_dics.get(w.lower() , []) )
+            if w!=w.lower():
+                cats.extend( self.static_dics.get(w.lower() , []) )
             if len(cats)==0:  #-guess
                 if re.match(r'\d+$',w)!=None:
                     cats.extend( ["NP","NP/N[pl]" , "NP/N"] )
@@ -798,14 +829,20 @@ class Lexicon(object):
             if len(cats)==0:
                 cats = self.static_dics.get(" ".join(toklist).lower() , [])
         assert(type(cats)==list),toklist
-        return ([lexparse(b) for b in set([c for c in cats if isinstance(c,basestring)])]+[c for c in cats if not isinstance(c,basestring)])
+        ret = []
+        for c in set(cats):
+            if isinstance(c,basestring):
+                 ret.append( lexparse(c) )
+            else:
+                 ret.append( c )
+        return ret
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
     def has_key(self,tok):
         return (tok in self.static_dics)
     def get(self,toklist,defval):
-        return self.__getitem__(toklist)
-
+        ret = self.__getitem__(toklist)
+        return ret
 
 
 
@@ -850,7 +887,6 @@ def testrun(tokens,lexicon):
        print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
        print("")
        break
-
 
 
 
@@ -947,14 +983,15 @@ def tokenize(sents):
 
 if __name__=="__main__":
    import os,sys
-   dic1 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "ccglex.en")
-   dic2 = os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "phrases.en")
+   TOPDIR = os.path.dirname(os.path.abspath(__file__))
+   dic1 = os.path.join(TOPDIR , ".." , "ccglex.en")
+   dic2 = os.path.join(TOPDIR , ".." , "phrases.en")
    lexicon = Lexicon(dic1,dic2)
    lexicon['.'] = ["ROOT\\S","ROOT\\S[imp]"]
    lexicon[';'] = ["ROOT\\S"]
    lexicon['?'] = ["ROOT\\S[q]","ROOT\\S[wq]"]
    var = next(gensym)
-   lexicon[","] = [ "COMMA" ,"(S/S)\\VP[pss]" , "CONJ"]
+   lexicon[","] = [ "(((S/(S\\NP))\\NP)/COMMA)/(S/S)" ,"COMMA" ,"(S/S)\\VP[pss]" , "(NP/NP)\\NP"]
    lexicon["don't"] = ["(S\\NP)/(S\\NP)"]
    for line in sys.stdin:
        line = line.strip()
