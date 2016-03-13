@@ -96,7 +96,8 @@ VP[euph]:連用形(過去)
 
 """
 if __name__=="__main__":
-   lexicon = JPLexicon("ccglex.jpn")
+   TOPDIR = os.path.dirname(os.path.abspath(__file__))
+   lexicon = JPLexicon(os.path.join(TOPDIR , "ccglex.jpn"))
    #-- 機能語
    lexicon[u"。"] = ["ROOT\\S"]
    lexicon[u"な"] = ["(N/N)\\N[adj]"]
@@ -119,7 +120,7 @@ if __name__=="__main__":
    lexicon[u"こと"] = ["N\\S"]
    lexicon[u"た"] = ["(S\\NP[nom])\\IV[euph]","((S\\NP[nom])\\NP[acc])\\VP[euph]"]
    lexicon[u"て"] = ["(S[te]\\NP[nom])\\VP[cont]","((S[te]\\NP[nom])\\NP[acc])\\VP[cont]","((S\\NP[nom])/(S\\NP[nom]))\\VP[cont]"]
-   jptest(u"これは人間です" , lexicon)
+   jptest(u"これは人間です。" , lexicon)
    jptest(u"私は走った" , lexicon)
    jptest(u"彼はとても驚いた",lexicon)
    jptest(u"彼はとても速く走った",lexicon)
