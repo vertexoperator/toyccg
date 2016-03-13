@@ -55,28 +55,20 @@ class JPLexicon(object):
     def __getitem__(self,tok):
         w = tok
         cats = self.static_dics.get(w , [])
-        if len(cats)==0:  #-guess
-            if re.match(r'\d+$',w)!=None:
-                cats.extend( ["NP","NP/N[pl]" , "NP/N"] )
-            elif re.match(r'\d+th$',w)!=None:
-                cats.extend( ["NP", "NP/N[pl]" , "NP/N" , "N/N" , "N[pl]/N[pl]"] )
-            elif w[-1]=="'" and w[-2]=="s": #-- e.g. Americans'
-                cats.extend(["NP/N[pl]" , "NP/N"])
-            elif w[0].isupper():   #-- proper noun
-                cats.extend( ["NP" , "NP/N" , "N/N", "NP/N[pl]"] )
-            elif w[-2:]=='ly':  #-- RB
-                cats.extend(["S/S","S\\S","((NP\\NP)/(NP\\NP))","VP[adj]/VP[adj]","S[q]\\S[q]","S[imp]\\S[imp]"])
-            elif w[-3:] in ["ive","ble"]: #-- JJ
-                cats.extend(["N/N","NP/N[pl]","NP/N","N[pl]/N[pl]","VP[adj]","NP/N"])
         ret = []
-        for c in set(cats):
-            if isinstance(c,basestring):
-                 ret.append( lexparse(c) )
-            else:
+        for c in cats:
+            if not isinstance(c,basestring):
                  ret.append( c )
+        for c in set([x for x in cats if isinstance(x,basestring)]):
+            ret.append( lexparse(c) )
         return ret
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
+    def setdefault(self,key,defval):
+        if key in self.static_dics:
+             return self.static_dics[key]
+        else:
+             return self.static_dics.setdefault(key,defval)
     def has_key(self,tok):
         return (tok in self.static_dics)
     def get(self,toklist,defval):
@@ -100,26 +92,30 @@ if __name__=="__main__":
    lexicon = JPLexicon(os.path.join(TOPDIR , "ccglex.jpn"))
    #-- 機能語
    lexicon[u"。"] = ["ROOT\\S"]
+   lexicon[u"、"] = ["CONJ" ,[FORALL ,[Symbol("X")] , [BwdApp , Symbol("X") , Symbol("X")]]]
    lexicon[u"な"] = ["(N/N)\\N[adj]"]
    lexicon[u"は"] = ["NP[nom]\\N"]
-   lexicon[u"が"] = ["NP[nom]\\N"]
+   lexicon[u"が"] = ["NP[nom]\\N","NP[ga-acc]\\N"]
    lexicon[u"も"] = ["NP[nom]\\N"]
    lexicon[u"を"] = ["NP[acc]\\N"]
    lexicon[u"や"] = ["(N/N)\\N"]
    lexicon[u"に"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N","((S\\NP[nom])/(S\\NP[nom]))\\N[adj]","(S[imp]/S[imp])\\N[adj]"]
    lexicon[u"で"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N"]
-   lexicon[u"と"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N","(S/S)\S",Symbol("CONJ")]
+   lexicon[u"と"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N","(S/S)\S","CONJ"]
    lexicon[u"の"] = ["(N/N)\\N"]
    lexicon[u"から"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N"]
    lexicon[u"です"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]"]
+   lexicon[u"でした"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]"]
    lexicon[u"ます"] = ["(S\\NP[nom])\\VP[cont]"]
-   lexicon[u"だ"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]"]
+   lexicon[u"だ"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[ga-acc])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]"]
    lexicon[u"ない"] = ["(S\\NP[nom])\\VP[neg]","((S\\NP[nom])\\NP[acc])\\IV[neg]","(S\\NP[nom])\\VP[a-cont]","(N/N)\\VP[a-cont]","((S\\NP[nom])\\NP[acc])\\TV[neg]","S\\NP[nom]"]
    lexicon[u"ません"] = ["(S\\NP[nom])\\VP[neg]","((S\\NP[nom])\\NP[acc])\\IV[neg]"]
    lexicon[u"いる"] = ["S\\S[te]","S\\NP[nom]"]
    lexicon[u"こと"] = ["N\\S"]
    lexicon[u"た"] = ["(S\\NP[nom])\\IV[euph]","((S\\NP[nom])\\NP[acc])\\VP[euph]"]
-   lexicon[u"て"] = ["(S[te]\\NP[nom])\\VP[cont]","((S[te]\\NP[nom])\\NP[acc])\\VP[cont]","((S\\NP[nom])/(S\\NP[nom]))\\VP[cont]"]
+   lexicon[u"ば"] = ["((S/S)\\NP[nom])\\IV[hyp]","((S/(S\\NP[nom]))\\NP[nom])\\IV[hyp]"]
+   lexicon[u"て"] = ["(S[te]\\NP[nom])\\IV[cont]","((S/S)\\NP[nom])\\IV[cont]","(S[te]\\NP[nom])\\IV[euph]","((S[te]\\NP[nom])\\NP[acc])\\VP[cont]","((S\\NP[nom])/(S\\NP[nom]))\\VP[cont]"]
+   lexicon.setdefault(u"する",[]).extend( ["(S\\NP[nom])\\N"] )
    jptest(u"これは人間です。" , lexicon)
    jptest(u"私は走った" , lexicon)
    jptest(u"彼はとても驚いた",lexicon)
@@ -128,7 +124,6 @@ if __name__=="__main__":
    jptest(u"彼はすももを食べている",lexicon)
    jptest(u"東京の人間は斧を食べている",lexicon)
    jptest(u"子供が寝ている",lexicon)
-   jptest(u"子供がいる",lexicon)
    jptest(u"私は東京に行った",lexicon)
    jptest(u"東京はいい天気です",lexicon)
    jptest(u"かわいい私の妹がいる",lexicon)
@@ -149,3 +144,13 @@ if __name__=="__main__":
    jptest(u"私は電車で行きます。",lexicon)
    jptest(u"私は電車で行く。",lexicon)
    jptest(u"私は寝て驚いた",lexicon)
+   jptest(u"私は彼が嫌いだ",lexicon)
+   jptest(u"私は彼を嫌いだ",lexicon)
+   jptest(u"その店は来年の夏に開業する。",lexicon)
+   jptest(u"私は、数学が得意だ。",lexicon)
+   jptest(u"虫が多くて私は困っている。",lexicon)
+   jptest(u"それは、彼の得意な戦法です。",lexicon)
+   jptest(u"風が吹けば、桶屋が儲かる。",lexicon)
+   jptest(u"それが正しければ、大発見だ。",lexicon)
+   jptest(u"しかし、彼が辞めると、私が困る。",lexicon)
+#   jptest(u"象は鼻が長い",lexicon)
