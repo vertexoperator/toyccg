@@ -24,8 +24,6 @@ USAGE
 TODO
 ----
 
-* to parse CCG more efficiently
-
 * brush up lexicons
 
 * apply to other languages(e.g. Japanese,etc.)
@@ -44,6 +42,8 @@ References
 * Efficient Normal-Form Parsing for Combiantory Categorial Grammar (Jason Eisner, 1996)
 
 * Normal-form parsing for Combinatory Categorial Grammars with generalized composition and type-raising (2010)
+
+* Unsupervised syntax learning with categorial grammars using inference rules (2009)
 
 * A* CCG Parsing with a Supertag-factored Model (2014)
 ([paper](http://www.aclweb.org/anthology/D14-1107))
