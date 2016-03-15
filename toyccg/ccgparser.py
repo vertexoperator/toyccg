@@ -673,10 +673,10 @@ def LCB(lt , rt):
 """
 In English, I do not use >Bx(RBx) , <Bx(LBx), >S(RS) , <S(LS) , >Sx(RSx) , <Sx(LSx)
 """
-combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
-terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
+en_combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
+en_terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 
-def buildChart(tokens,lexicon):
+def buildChart(tokens,lexicon,combinators=en_combinators,terminators=en_terminators):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
        if len(path2)==3 and fc==RBx and path2[1]=="LT":
