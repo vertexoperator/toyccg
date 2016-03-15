@@ -30,6 +30,8 @@ TODO
 
 * semantic parsing support
 
+* supporting unsupervised learning of syntactic categories
+
 * add setup.py
 
 
