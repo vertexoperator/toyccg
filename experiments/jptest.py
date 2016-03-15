@@ -107,7 +107,7 @@ if __name__=="__main__":
    lexicon[u"な"] = ["(N/N)\\N[adj]"]
    lexicon[u"は"] = ["NP[nom]\\N"]
    lexicon[u"が"] = ["NP[nom]\\N","NP[ga-acc]\\N","(S/S)\\S"]
-   lexicon[u"も"] = ["NP[nom]\\N","NP[nom-enum]\\N","(NP[nom]/NP[nom-enum])\\N","(NP[nom-enum]/NP[nom-enum])\\N"]
+   lexicon[u"も"] = ["(S/S)\\N","NP[nom]\\N","NP[nom-enum]\\N","(NP[nom]/NP[nom-enum])\\N","(NP[nom-enum]/NP[nom-enum])\\N"]
    lexicon[u"を"] = ["NP[acc]\\N"]
    lexicon[u"や"] = ["(N/N)\\N"]
    lexicon[u"に"] = ["((S\\NP[nom])/(S\\NP[nom]))\\N","((S\\NP[nom])/(S\\NP[nom]))\\N[adj]","(S[imp]/S[imp])\\N[adj]","(S[null]/S[null])\\N","(S[null]/S[null])\\N[adj]"]
@@ -207,4 +207,5 @@ if __name__=="__main__":
    jptest(u"しかし、彼が辞めると、私が困る。",lexicon)
    jptest(u"彼も私も正しい",lexicon)
    jptest(u"すももも桃も桃の内",lexicon)
+   jptest(u"今日も、パンダがかわいい。",lexicon)
 #   jptest(u"象は鼻が長い",lexicon)
