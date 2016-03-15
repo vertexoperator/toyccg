@@ -41,6 +41,8 @@ References
 
 * The Syntactic Process (MIT Press, Mark Steedman, 2000)
 
+* 日本語文法の形式理論：活用体系・統語構造・意味合成 (くろしお出版, 戸次大介, 2010)
+
 * Efficient Normal-Form Parsing for Combiantory Categorial Grammar (Jason Eisner, 1996)
 
 * Normal-form parsing for Combinatory Categorial Grammars with generalized composition and type-raising (2010)
