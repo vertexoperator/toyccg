@@ -4,7 +4,11 @@ Toy CCG Parser
 OVERVIEW
 --------
 
-simple English CCG Parser
+- This is a compact CCG Parser.
+- It is written in pure python using only python standard libs.
+- It does not require any machine learning at all.
+- It supports English and Japanese currently. 
+- It can support any other natural languages.
 
 
 Python 2.x or 3.x
@@ -30,10 +34,11 @@ TODO
 
 * semantic parsing support
 
-* supporting unsupervised learning of syntactic categories
+* supporting unsupervised inference of syntactic categories
 
 * add setup.py
 
+* add document
 
 
 References
