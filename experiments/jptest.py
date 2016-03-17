@@ -4,10 +4,20 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." ,
 from lexicon import *
 from ccgparser import *
 
-jp_combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj]
+
+#-- special combinator for Japanese
+def FwdRel(lt,rt):
+    if rt!=Symbol("N"):
+       return None
+    if lt==Symbol("S[null]") or lt==Symbol("S"):
+       return Symbol("N")
+    return None
+
+
+jp_combinators = [LApp,RApp,LB,RB,LBx,LS,RS,LSx,RSx,LT,RT,Conj,FwdRel]
 jp_terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 
-def jptest(sentence,lexicon):
+def jptest(sentence,lexicon,type=0):
    def decode(left_start , right_end , path , chart):
        ret = []
        if len(path)==1:
@@ -37,8 +47,13 @@ def jptest(sentence,lexicon):
    print(u"test run : sentence={0}".format(sentence))
    for chart in buildChart(sentence,lexicon,jp_combinators,jp_terminators):
        topcat,path = chart[(0,len(sentence)-1)][-1]
-       print( (topcat.value() , decode(0 , len(sentence)-1 , path , chart)) )
-       print("")
+       if type!=0:
+           print( (topcat.value() , decode(0 , len(sentence)-1 , path , chart)) )
+           print("")
+       elif type==0:
+           for (sidx,eidx,cat) in decode(0 , len(sentence)-1 , path , chart):
+               print(u"{0} {1}".format(sentence[sidx:eidx+1] ,catname(cat)))
+           break
    print("")
 
 
@@ -90,6 +105,46 @@ S[exc]:感嘆文
 S[null]:主語が省略された文
 S[nom]:体言止め(nominal phrase)
 
+
+二重ガ格構文:"Xは"の範疇はS/Sである(文を修飾する)と解釈することにする
+- 象は鼻が長い => As for an elephant, the nose is long.
+- 彼は力は強いが、頭は悪い
+- 彼は鼻が利く
+- 理由は彼が聞いた
+- カキ料理は広島が本場だ
+- 酒はロシア人が強い
+- 彼の方法は、わたしは嫌いだ。
+- 私は朝は体温が高い
+
+
+助詞の「も」
+- 彼も私も、猫を好きだ(主格的)
+- 彼も私も、猫が好きだ(主格的)
+- 私は、犬も猫も好きだ(目的格的)
+- 私は、犬と猫を好きだ
+- 私は、犬と猫が好きだ
+- 私は、今日も明日も走る(修飾格的)
+- 私は、今日と明日に走る
+- 私は、今日と明日も走る(修飾格的)
+- 彼も私も、彼女は好きだ
+- 彼も私も、彼女が好きだ
+- 彼女は、彼も私も好きだ
+- 彼女が、彼も私も好きだ
+- 彼女のことは、彼も私も好きだ
+
+
+- 私は読書が好きだ
+- 読書は私が好きだ
+- 私は肉も好きだ
+- 私も肉は好きだ
+- 肉も私は好きだ
+- 肉は私も好きだ
+
+Semantically unpredictable sentences, 合文法無意味文
+- 肉は魚も好き
+- 魚は肉も好き
+
+
 """
 if __name__=="__main__":
    TOPDIR = os.path.dirname(os.path.abspath(__file__))
@@ -105,7 +160,7 @@ if __name__=="__main__":
    lexicon[u"やすけれ"] = ["IV[a-hyp]\\IV[cont]" , "IV[a-hyp]\\IV[cont]"]
    #--
    lexicon[u"な"] = ["(N/N)\\N[adj]"]
-   lexicon[u"は"] = ["NP[nom]\\N"]
+   lexicon[u"は"] = ["NP[nom]\\N","(S/S)\\N"]
    lexicon[u"が"] = ["NP[nom]\\N","NP[ga-acc]\\N","(S/S)\\S"]
    lexicon[u"も"] = ["(S/S)\\N","NP[nom]\\N","NP[nom-enum]\\N","(NP[nom]/NP[nom-enum])\\N","(NP[nom-enum]/NP[nom-enum])\\N"]
    lexicon[u"を"] = ["NP[acc]\\N"]
@@ -116,8 +171,8 @@ if __name__=="__main__":
    lexicon[u"の"] = ["(N/N)\\N","((S[nom]\\NP[nom])/(S[nom]\\NP[nom]))\\N"]
    lexicon.setdefault(u"から",[]).extend( ["((S\\NP[nom])/(S\\NP[nom]))\\N","(S/S)\\S"] )
    lexicon[u"ようだ"] = ["S\\S"]
-   lexicon[u"らしい"] = ["S\\S","(N/N)\\N","(S\\NP[nom])\\N"]
-   lexicon[u"だろう"] = ["S\\S","(S\\NP[nom])\\N[adj]"]
+   lexicon[u"らしい"] = ["S\\S","(N/N)\\N","(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]"]
+   lexicon[u"だろう"] = ["S\\S","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]"]
    #-- (助詞,接続助詞)
    lexicon[u"ながら"] = ["((S/S)\\NP[nom])\\IV[cont]","((S/S)\\NP[acc])\\VP[cont]","((S[null]/S[null])\\NP[acc])\\VP[cont]","(S[null]/S[null])\\IV[cont]"]
    lexicon.setdefault(u"つつ",[]).extend( lexicon[u"ながら"] )
@@ -147,9 +202,9 @@ if __name__=="__main__":
    lexicon[u"にわたる"] = ["(N/N)\\N"]
    lexicon[u"に関する"] = ["(N/N)\\N"]
    #--
-   lexicon[u"です"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
-   lexicon[u"でしょう"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
-   lexicon[u"でした"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"です"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"でしょう"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"でした"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"ます"] = ["(S\\NP[nom])\\IV[cont]","S[null]\\IV[cont]","((S\\NP[nom])\\NP[acc])\\VP[cont]","(S[null]\\NP[acc])\\VP[cont]"]
    lexicon[u"ました"] = lexicon[u"ます"]
    lexicon[u"だ"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[ga-acc])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
@@ -206,6 +261,7 @@ if __name__=="__main__":
    jptest(u"それが正しければ、大発見だ。",lexicon)
    jptest(u"しかし、彼が辞めると、私が困る。",lexicon)
    jptest(u"彼も私も正しい",lexicon)
-   jptest(u"すももも桃も桃の内",lexicon)
+   jptest(u"すももももももももの内",lexicon)
    jptest(u"今日も、パンダがかわいい。",lexicon)
+   jptest(u"これは、私が買った家です。",lexicon)
 #   jptest(u"象は鼻が長い",lexicon)
