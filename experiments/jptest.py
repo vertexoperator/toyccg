@@ -9,7 +9,7 @@ from ccgparser import *
 def FwdRel(lt,rt):
     if rt!=Symbol("N"):
        return None
-    if lt==Symbol("S[null]") or lt==Symbol("S"):
+    if lt==Symbol("S[null]") or lt==Symbol("S") or lt==[BwdApp , [BwdApp , Symbol("S") , Symbol("NP[nom]")] , Symbol("NP[acc]")]:
        return Symbol("N")
     return None
 
@@ -203,6 +203,7 @@ if __name__=="__main__":
    lexicon[u"に関する"] = ["(N/N)\\N"]
    #--
    lexicon[u"です"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"ではない"] = lexicon[u"です"]
    lexicon[u"でしょう"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"でした"] = ["(S\\NP[nom])\\N","(S\\NP[nom])\\N[adj]","((S\\NP[nom])\\NP[acc])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"ます"] = ["(S\\NP[nom])\\IV[cont]","S[null]\\IV[cont]","((S\\NP[nom])\\NP[acc])\\VP[cont]","(S[null]\\NP[acc])\\VP[cont]"]
@@ -264,4 +265,6 @@ if __name__=="__main__":
    jptest(u"すももももももももの内",lexicon)
    jptest(u"今日も、パンダがかわいい。",lexicon)
    jptest(u"これは、私が買った家です。",lexicon)
-#   jptest(u"象は鼻が長い",lexicon)
+   jptest(u"私は財布を落とした。",lexicon)
+   jptest(u"これは、私の落とした財布ではない。",lexicon)
+   jptest(u"象は鼻が長い",lexicon)
