@@ -1,23 +1,7 @@
 # -*- coding:utf-8 -*-
-
-class Symbol(object):
-   __slots__ = ["val"]
-   def __init__(self,_val):
-       self.val = _val
-   def value(self):
-       return self.val
-   def __str__(self):
-       return self.val
-   def __eq__(self,other):
-       return (type(other)==type(self) and self.val==other.val)
-   def __ne__(self,other):
-       return (type(other)!=type(self) or self.val!=other.val)
-   def __repr__(self):
-       return "Symbol('{0}')".format(self.val)
-   def __hash__(self):
-       return self.val.__hash__()
-
-
+"""
+simple (inefficient) PEG parser for CCG lexicon
+"""
 class Parser:
     def parse(self, a):
         pass
@@ -132,6 +116,26 @@ class Lazy(Parser):
         return self.parser.parse(s)
 
 
+
+
+class Symbol(object):
+   __slots__ = ["val"]
+   def __init__(self,_val):
+       self.val = _val
+   def value(self):
+       return self.val
+   def __str__(self):
+       return self.val
+   def __eq__(self,other):
+       return (type(other)==type(self) and self.val==other.val)
+   def __ne__(self,other):
+       return (type(other)!=type(self) or self.val!=other.val)
+   def __repr__(self):
+       return "Symbol('{0}')".format(self.val)
+   def __hash__(self):
+       return self.val.__hash__()
+
+
 class buildPrimCat(Parser):
     __slots__ = ["parser"]
     def __init__(self,p):
@@ -167,8 +171,11 @@ class buildDerivCat(Parser):
        return m
 
 
+
+
+
 Upper = Cond(lambda x:x.isupper())
-Lower = Cond(lambda x:x.islower())
+Lower = Cond(lambda x:x.islower() or x=="-")
 CatFeat = Sequence(Char('[') , Many1(Lower) , Char(']'))
 PrimCat = buildPrimCat( Sequence( Many1(Upper) , Try(CatFeat) ))
 Lexicon = Lazy()

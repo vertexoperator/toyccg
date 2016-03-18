@@ -3,7 +3,6 @@ from lexicon import lexparse,Symbol
 import inspect
 import re
 import threading
-import gc
 
 #-- for python2/3 compatibility
 from io import open
