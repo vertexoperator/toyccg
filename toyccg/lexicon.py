@@ -185,7 +185,7 @@ Lexicon.set(Choice(PrimCat , DerivCat))
 TopLexicon = Choice(TopDerivCat , Lexicon)
 
 
-def lexparse(s):
+def lexify(s):
     rem,res = TopLexicon.parse(s)
     if len(rem)==0:
         return res
