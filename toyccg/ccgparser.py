@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from lexicon import lexparse,Symbol
+from lexicon import lexify,Symbol
 import inspect
 import re
 import threading
@@ -763,7 +763,6 @@ def buildChart(tokens,lexicon,combinators=en_combinators,terminators=en_terminat
                                       yield chart
                                else:
                                   new_items.append( (left_start,right_end , cat2,path) )
-                                  #chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
                                break   #-- is it OK?
          for (left_start,right_end,cat2,path) in new_items:
              chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
@@ -831,7 +830,7 @@ class Lexicon(object):
         ret = []
         for c in set(cats):
             if isinstance(c,basestring):
-                 ret.append( lexparse(c) )
+                 ret.append( lexify(c) )
             else:
                  ret.append( c )
         return ret
