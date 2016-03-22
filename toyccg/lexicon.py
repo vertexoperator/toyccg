@@ -186,9 +186,10 @@ TopLexicon = Choice(TopDerivCat , Lexicon)
 
 
 def lexify(s):
-    rem,res = TopLexicon.parse(s)
-    if len(rem)==0:
-        return res
-    else:
-        return None
+    try:
+       rem,res = TopLexicon.parse(s)
+       assert(len(rem)==0),("parse error:{0}".format(s))
+       return res
+    except:
+       assert(False),("parse error:{0}".format(s))
 

@@ -669,13 +669,7 @@ def LCB(lt , rt):
     return LB(rt , lt)
 
 
-"""
-In English, I do not use >Bx(RBx) , <Bx(LBx), >S(RS) , <S(LS) , >Sx(RSx) , <Sx(LSx)
-"""
-en_combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
-en_terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
-
-def buildChart(tokens,lexicon,combinators=en_combinators,terminators=en_terminators):
+def buildChart(tokens,lexicon,combinators,terminators):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
        if len(path2)==3 and fc==RBx and path2[1]=="LT":
@@ -785,6 +779,87 @@ def buildChart(tokens,lexicon,combinators=en_combinators,terminators=en_terminat
 
 
 
+class Tree:
+    def __init__(self,node,*args):
+        assert(type(node)==str)
+        self.node = node
+        self.children = args
+    def __unicode__(self):
+        return (u"({0} {1})".format(self.node , u" ".join([unicode(c) for c in self.children])))
+    def leaves(self):
+        ret = []
+        for t in self.children:
+            if isinstance(t,Leaf):
+                ret.append(t)
+            elif isinstance(t,Tree):
+                ret.extend( t.leaves() )
+        return ret
+
+
+
+class Leaf:
+    def __init__(self , catname , token):
+       self.catname = catname
+       self.token = token
+    def __unicode__(self):
+       return (u"[{1}:{0}]".format(self.catname , self.token))
+
+
+
+def catname(t):
+    def _catname(t):
+        if type(t)!=list:
+            return t.value()
+        elif t[0]==FwdApp:
+            return "({0}/{1})".format(_catname(t[1]) , _catname(t[2]))
+        elif t[0]==BwdApp:
+            return "({0}\\{1})".format(_catname(t[1]) , _catname(t[2]))
+        elif t[0]==FORALL:
+            return "(\\{0}->{1})".format(",".join([x.value() for x in t[1]]) , _catname(t[2]))
+        else:
+            assert(False),t
+    tmp = _catname(t)
+    if tmp[0]=="(" and tmp[-1]==")":
+        return tmp[1:-1]
+    else:
+        return tmp
+
+
+def buildTree(tokens,lexicon,combinators,terminators):
+   def decode(left_start , right_end , path , chart):
+       if len(path)==0+1:
+          return "".join(tokens[left_start:right_end+1])
+       elif len(path)==2+1:
+          idx = path[0]
+          cat1,path1 = chart[(left_start,right_end)][idx]
+          child = decode(left_start,right_end , path1 , chart)
+          if type(child)==unicode:
+             return Leaf(catname(cat1) , child)
+          else:
+             return Tree(path[1] , child)
+       else:
+          assert(len(path)==4+1),path
+          idx1,idx2,left_end,_,_ = path
+          right_start = left_end+1
+          cat1,path1 = chart[(left_start,left_end)][idx1]
+          cat2,path2 = chart[(right_start,right_end)][idx2]
+          leftnode = decode(left_start,left_end , path1 , chart)
+          rightnode = decode(right_start,right_end , path2, chart)
+          if not isinstance(leftnode,Tree):
+               leftnode = Leaf(catname(cat1) , leftnode)
+          if not isinstance(rightnode,Tree):
+               rightnode = Leaf(catname(cat2) , rightnode)
+          t = Tree(path[3] , leftnode , rightnode)
+          return t
+   for chart in buildChart(tokens,lexicon,combinators,terminators):
+       topcat,path = chart[(0,len(tokens)-1)][-1]
+       yield decode(0 , len(tokens)-1 , path , chart)
+
+
+"""
+-----------------------------------
+"""
+
 
 class Lexicon(object):
     def __init__(self, worddic=None , phrasedic=None):
@@ -844,24 +919,13 @@ class Lexicon(object):
 
 
 
-def catname(t):
-    def _catname(t):
-        if type(t)!=list:
-            return t.value()
-        elif t[0]==FwdApp:
-            return "({0}/{1})".format(_catname(t[1]) , _catname(t[2]))
-        elif t[0]==BwdApp:
-            return "({0}\\{1})".format(_catname(t[1]) , _catname(t[2]))
-        elif t[0]==FORALL:
-            return "(\\{0}->{1})".format(",".join([x.value() for x in t[1]]) , _catname(t[2]))
-        else:
-            assert(False),t
-    tmp = _catname(t)
-    if tmp[0]=="(" and tmp[-1]==")":
-        return tmp[1:-1]
-    else:
-        return tmp
 
+
+"""
+In English, I do not use >Bx(RBx) , <Bx(LBx), >S(RS) , <S(LS) , >Sx(RSx) , <Sx(LSx)
+"""
+en_combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
+en_terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 
 
 def testrun(tokens,lexicon):
@@ -880,7 +944,7 @@ def testrun(tokens,lexicon):
           cat2,path2 = chart[(right_start,right_end)][idx2]
           return (path[3],(catname(cat1),decode(left_start,left_end , path1 , chart)) , (catname(cat2),decode(right_start,right_end , path2, chart)))
    print("test run:{0}".format(str(tokens)))
-   for chart in buildChart(tokens,lexicon):
+   for chart in buildChart(tokens,lexicon,en_combinator,en_terminators):
        topcat,path = chart[(0,len(tokens)-1)][-1]
        print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
        print("")

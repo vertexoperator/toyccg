@@ -1,87 +1,38 @@
 # -*- coding:utf-8 -*-
 import sys,os
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." , "toyccg"))
-from ccgparser import *
-from tree import *
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)) , ".." ))
+from toyccg import *
 
 
 #-- special combinator for Japanese
 def FwdRel(lt,rt):
-    if rt!=Symbol("N"):
+    if rt!=Symbol("N[base]"):
        return None
     if lt==Symbol("S[null]") or lt==Symbol("S") or lt==[BwdApp , [BwdApp , Symbol("S") , Symbol("NP[sbj]")] , Symbol("NP[obj]")]:
        return Symbol("N")
     return None
 
 
-jp_combinators = [LApp,RApp,LB,RB,LS,RS,RSx,Conj,FwdRel]
+
+def SkipCommaJP(lt,rt):
+    if (type(lt)==list or lt.value()!="N[base]") and type(rt)!=list and rt.value()=="COMMA":
+         return lt
+
+
+
+jp_combinators = [LApp,RApp,LB,RB,LS,RS,RSx,Conj,FwdRel,SkipCommaJP]
 jp_terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 
+
 def jptest(sentence,lexicon,type=0):
-   def decode(left_start , right_end , path , chart):
-       ret = []
-       if len(path)==1:
-          return ret
-       elif len(path)==3:
-          idx = path[0]
-          cat1,path1 = chart[(left_start,right_end)][idx]
-          if len(path1)==0:
-              return [(left_start , right_end , cat1)]
-          else:
-              return decode(left_start,right_end , path1 , chart)
-       else:
-          assert(len(path)==5),path
-          idx1,idx2,left_end,_,_ = path
-          right_start = left_end+1
-          cat1,path1 = chart[(left_start,left_end)][idx1]
-          cat2,path2 = chart[(right_start,right_end)][idx2]
-          if len(path1)==1:
-              ret.append( (left_start,left_end,cat1) )
-          else:
-              ret.extend( decode(left_start,left_end , path1 , chart) )
-          if len(path2)==1:
-              ret.append( (right_start,right_end,cat2) )
-          else:
-              ret.extend( decode(right_start,right_end ,path2, chart) )
-          return ret
-   def decode2(left_start , right_end , path , chart):
-       if len(path)==0+1:
-          return "".join(sentence[left_start:right_end+1])
-       elif len(path)==2+1:
-          idx = path[0]
-          cat1,path1 = chart[(left_start,right_end)][idx]
-          child = decode2(left_start,right_end , path1 , chart)
-          if type(child)==unicode:
-             return Leaf(catname(cat1) , child)
-          else:
-             return Tree(path[1] , child)
-       else:
-          assert(len(path)==4+1),path
-          idx1,idx2,left_end,_,_ = path
-          right_start = left_end+1
-          cat1,path1 = chart[(left_start,left_end)][idx1]
-          cat2,path2 = chart[(right_start,right_end)][idx2]
-          leftnode = decode2(left_start,left_end , path1 , chart)
-          rightnode = decode2(right_start,right_end , path2, chart)
-          if not isinstance(leftnode,Tree):
-               leftnode = Leaf(catname(cat1) , leftnode)
-          if not isinstance(rightnode,Tree):
-               rightnode = Leaf(catname(cat2) , rightnode)
-          t = Tree(path[3] , leftnode , rightnode)
-          return t
-#          return (path[3],(catname(cat1),decode2(left_start,left_end , path1 , chart)) , (catname(cat2),decode2(right_start,right_end , path2, chart)))
    print(u"test run : sentence={0}".format(sentence))
-   for chart in buildChart(sentence,lexicon,jp_combinators,jp_terminators):
-       topcat,path = chart[(0,len(sentence)-1)][-1]
-       if type==1:
-           print( (topcat.value() , decode(0 , len(sentence)-1 , path , chart)) )
-           print("")
-       elif type==0:
-           for (sidx,eidx,cat) in decode(0 , len(sentence)-1 , path , chart):
-               print(u"{0} {1}".format(sentence[sidx:eidx+1] ,catname(cat)))
+   for t in buildTree(sentence,lexicon,jp_combinators,jp_terminators):
+       if type==0:
+           for r in t.leaves():
+               print(u"{0} {1}".format(r.token , r.catname))
            break
        else:
-           print( unicode(decode2(0 , len(sentence)-1 , path , chart)) )
+           print( unicode(t) )
            break
    print("")
 
@@ -181,8 +132,12 @@ if __name__=="__main__":
    lexicon = JPLexicon(os.path.join(TOPDIR , "ccglex.jpn"))
    #-- 機能語
    lexicon[u"。"] = ["ROOT\\S","ROOT\\S[null]","ROOT\\S[nom]"]
-   lexicon[u"、"] = ["(N/N)\\N" ,[FORALL ,[Symbol("X")] , [BwdApp , Symbol("X") , Symbol("X")]]]
-   lexicon[u"たい"] = ["(S\\NP[sbj])\\IV[cont]" , "((S\\NP[sbj])\\NP[obj])\\VP[cont]"]
+   lexicon[u"？"] = ["ROOT\\S[q]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
+   lexicon[u"?"] = ["ROOT\\S[q]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
+   lexicon[u"、"] = ["(N/N)\\N" ,"COMMA"]
+   lexicon[u"」"] = ["RQUOTE"]
+   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])"]
+   lexicon[u"たい"] = ["(S\\NP[sbj])\\IV[cont]" , "S[null]\\IV[cont]" ,"((S\\NP[sbj])\\NP[obj])\\VP[cont]","(S[null]\\NP[obj])\\VP[cont]"]
    lexicon.setdefault(u"的",[]).extend( ["N[adj]\\N" , "(N/N[base])\\N[base]"] )
    lexicon[u"など"] = ["N\\N"]
    #-- (形容詞,非自立)
@@ -238,6 +193,9 @@ if __name__=="__main__":
    lexicon[u"にわたる"] = ["(N/N)\\N"]
    lexicon[u"に関する"] = ["(N/N)\\N"]
    #--
+   lexicon.setdefault(u"では",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N"])
+   lexicon.setdefault(u"には",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N"])
+   #--
    lexicon[u"です"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"ではない"] = lexicon[u"です"]
    lexicon[u"でしょう"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
@@ -249,24 +207,43 @@ if __name__=="__main__":
    lexicon[u"だ"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[ga-acc])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"ない"] = ["(S\\NP[sbj])\\VP[neg]","((S\\NP[sbj])\\NP[obj])\\IV[neg]","(S\\NP[sbj])\\VP[a-cont]","(N/N)\\VP[a-cont]","((S\\NP[sbj])\\NP[obj])\\TV[neg]","S\\NP[sbj]"]
    lexicon[u"なけれ"] = ["IV[a-hyp]\\IV[neg]","VP[a-hyp]\\TV[neg]"]
-   lexicon[u"ません"] = ["(S\\NP[sbj])\\VP[neg]","((S\\NP[sbj])\\NP[obj])\\IV[neg]"]
+   lexicon[u"ません"] = ["(S\\NP[sbj])\\IV[neg]","((S\\NP[sbj])\\NP[obj])\\VP[neg]"]
    lexicon[u"いる"] = ["S\\S[te]","S\\NP[sbj]"]
-   lexicon[u"た"] = ["(S\\NP[sbj])\\IV[euph]","((S\\NP[sbj])\\NP[obj])\\VP[euph]","(S[null]\\NP[obj])\\VP[euph]"]
+   lexicon[u"た"] = ["(S\\NP[sbj])\\IV[euph]","S[null]\\IV[euph]","((S\\NP[sbj])\\NP[obj])\\VP[euph]","(S[null]\\NP[obj])\\VP[euph]"]
    lexicon[u"ば"] = ["((S/S)\\NP[sbj])\\IV[hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[hyp]","((S/S)\\NP[sbj])\\IV[a-hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[a-hyp]"]
    lexicon[u"て"] = ["(S[te]\\NP[sbj])\\IV[cont]","((S/S)\\NP[sbj])\\IV[cont]","(S[te]\\NP[sbj])\\IV[euph]","((S[te]\\NP[sbj])\\NP[obj])\\VP[cont]","((S\\NP[sbj])/(S\\NP[sbj]))\\VP[cont]","((S[null]/S[null])\\NP[obj])\\VP[cont]"]
    #-- 名詞(サ変接続)+"する"
    lexicon.setdefault(u"する",[]).extend( ["(S\\NP[sbj])\\N","S[null]\\N"] )
+   lexicon.setdefault(u"される",[]).extend( ["(S\\NP[sbj])\\N","S[null]\\N"] )
    lexicon[u"させる"] = lexicon[u"する"]
    lexicon[u"できる"] = lexicon[u"する"]
    tmpl = ["IV[neg]\\N","VP[neg]\\N","IV[cont]\\N","VP[cont]\\N","IV[euph]\\N","VP[euph]\\N"]
    lexicon.setdefault(u"し",[]).extend( tmpl )
    lexicon[u"させ"] = tmpl
+   #-- (動詞、接尾)
+   lexicon.setdefault(u"れる" , []).extend(["((S\\NP[sbj])\\NP[obj])\\VP[neg]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[neg]"])
+   lexicon.setdefault(u"られる" , []).extend(["((S\\NP[sbj])\\NP[obj])\\VP[neg]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[neg]"])
+   lexicon.setdefault(u"れ",[]).extend(["VP[neg]\\VP[neg]","IV[neg]\\IV[neg]","VP[hyp]\\VP[neg]","IV[hyp]\\IV[neg]","VP[euph]\\VP[neg]","IV[euph]\\IV[neg]"])
+   lexicon.setdefault(u"られ",[]).extend(["VP[neg]\\VP[neg]","IV[neg]\\IV[neg]","VP[hyp]\\VP[neg]","IV[hyp]\\IV[neg]","VP[euph]\\VP[neg]","IV[euph]\\IV[neg]","((S/S)\\NP[sbj])\\IV[neg]"])
+   lexicon.setdefault(u"せる" , []).extend(["((S\\NP[sbj])\\NP[obj])\\VP[neg]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[neg]"])
+   lexicon.setdefault(u"させる" , []).extend(["((S\\NP[sbj])\\NP[obj])\\VP[neg]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[neg]"])
+   lexicon.setdefault(u"せ",[]).extend(["VP[cont]\\VP[neg]","IV[cont]\\IV[neg]","VP[euph]\\VP[neg]","IV[euph]\\IV[neg]"])
+   lexicon.setdefault(u"がる",[]).extend(["((S\\NP[sbj])\\NP[obj])\\VP[cont]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[cont]"])
+   lexicon.setdefault(u"たがる",[]).extend(["((S\\NP[sbj])\\NP[obj])\\VP[cont]","(S\\NP[sbj])\\IV[neg]","S[null]\\IV[cont]"])
    #--
-   lexicon[u"圏論"] = ["N"]
-   lexicon[u"テレビゲーム"] = ["N"]
-   lexicon[u"給付水準"] = ["N"]
+   lexicon[u"圏論"] = ["N","N[base]"]
+   lexicon[u"テレビゲーム"] = ["N","N[base]"]
+   lexicon[u"給付水準"] = ["N","N[base]"]
+   lexicon.setdefault(u"ミス",[]).extend( ["N","N[base]","N\\N[base]","N[base]\\N[base]"] )
    #--
+   lexicon.setdefault(u"か",[]).extend(["S[q]\\S" , "S[q]\\S[null]"])
+   #--
+   lexicon.setdefault(u"のは",[]).extend(["NP[sbj]\\S[null]","NP[sbj]\\S"])
+   lexicon.setdefault(u"のが",[]).extend(["NP[sbj]\\S[null]","NP[sbj]\\S"])
+   lexicon.setdefault(u"と",[]).extend(["S[quote]\\S[com]","S[quote]\\S","S[quote]\\S[null]"])
+   lexicon.setdefault(u"言った",[]).extend(["(S\\S[quote])\\NP[sbj]"])
    for line in open( os.path.join(TOPDIR , "sentences.ja.txt") ,encoding='utf-8'):
        line = line.strip()
        if len(line)>0:
-           jptest(line , lexicon , type=2)
+           jptest(line , lexicon , type=0)
+
