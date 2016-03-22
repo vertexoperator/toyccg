@@ -944,7 +944,7 @@ def testrun(tokens,lexicon):
           cat2,path2 = chart[(right_start,right_end)][idx2]
           return (path[3],(catname(cat1),decode(left_start,left_end , path1 , chart)) , (catname(cat2),decode(right_start,right_end , path2, chart)))
    print("test run:{0}".format(str(tokens)))
-   for chart in buildChart(tokens,lexicon,en_combinator,en_terminators):
+   for chart in buildChart(tokens,lexicon,en_combinators,en_terminators):
        topcat,path = chart[(0,len(tokens)-1)][-1]
        print( (topcat.value() , decode(0 , len(tokens)-1 , path , chart)) )
        print("")
