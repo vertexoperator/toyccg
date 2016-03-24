@@ -114,7 +114,7 @@ class JPLexicon(object):
             else:
                  w = "".join(tmp)
                  words.append( (w,ctype) )
-                 if ctype in [0,1,2,3,4]:
+                 if ctype in [1,2,3]:
                      if not w in self.static_dics and not w in self.guess_dics:
                           self.guess_dics[w] = ["N[base]","N"]
                  elif ctype==5:
@@ -311,12 +311,11 @@ if __name__=="__main__":
    lexicon.setdefault(u"そう",[]).extend( ["S[null]/S[null]" , "IV[hyp]/IV[hyp]" , "IV[cont]/IV[cont]"] )
    #--
    lexicon[u"圏論"] = ["N","N[base]"]
+   lexicon[u"射影空間"] = ["N","N[base]"]
    lexicon[u"テレビゲーム"] = ["N","N[base]"]
    lexicon[u"給付水準"] = ["N","N[base]"]
    lexicon.setdefault(u"ミス",[]).extend( ["N","N[base]","N\\N[base]","N[base]\\N[base]"] )
-   """
    for line in open( os.path.join(TOPDIR , "sentences.ja.txt") ,encoding='utf-8'):
        line = line.strip()
        for sent in sentencize(line):
            jptest(sent , lexicon , type=0)
-   """
