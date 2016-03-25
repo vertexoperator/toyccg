@@ -541,7 +541,7 @@ def RSx(lt , rt):
     if type(lt)!=list or type(rt)!=list or type(lt[1])!=list:
         return None
     elif (lt[0],lt[1][0],rt[0])==(BwdApp,FwdApp,BwdApp) and term_eq(lt[1][2] , rt[1]) and term_eq(lt[2] , rt[2]):
-        return [BwdApp,lt[1][0],rt[2]]
+        return [BwdApp,lt[1][1],rt[2]]
     if type(lt)!=list or type(rt)!=list:
         return None
     elif lt[0].value()!="forall" and rt[0].value()!="forall":
@@ -579,7 +579,7 @@ def LSx(lt, rt):
     if type(lt)!=list or type(rt)!=list or type(rt[1])!=list:
         return None
     elif (lt[0],rt[1][0],rt[0])==(FwdApp,BwdApp,FwdApp) and term_eq(lt[1] , rt[1][2]) and term_eq(lt[2] , rt[2]):
-        return [FwdApp,rt[1][0],lt[2]]
+        return [FwdApp,rt[1][1],lt[2]]
     if type(lt)!=list or type(rt)!=list:
         return None
     elif lt[0].value()!="forall" and rt[0].value()!="forall":

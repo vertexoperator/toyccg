@@ -8,37 +8,50 @@ from toyccg import *
 def FwdRel(lt,rt):
     if rt!=Symbol("N[base]"):
        return None
-    if lt==Symbol("S[null]") or lt==Symbol("S") or lt==[BwdApp , [BwdApp , Symbol("S") , Symbol("NP[sbj]")] , Symbol("NP[obj]")]:
+    if lt==Symbol("S[null]") or lt==Symbol("S") or lt==Symbol("S[rel]"):
        return Symbol("N")
     return None
 
 
 
-def SkipCommaJP(lt,rt):
-    if (type(lt)==list or lt.value()!="N[base]") and type(rt)!=list and rt.value()=="COMMA":
-         return lt
 
-
-
-jp_combinators = [LApp,RApp,LB,RB,LS,RS,RSx,Conj,FwdRel,SkipCommaJP]
+jp_combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma]
 jp_terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 
 
-def jptest(sentence,lexicon,type=0):
-   print(u"test run : sentence={0}".format(sentence))
-   lexicon.guess(sentence)
-   for t in buildTree(sentence,lexicon,jp_combinators,jp_terminators):
-       if type==0:
-           for r in t.leaves():
-               if r.token in lexicon.guess_dics:
-                  print(u"{0} {1} (guess)".format(r.token , r.catname))
-               else:
-                  print(u"{0} {1}".format(r.token , r.catname))
-           break
-       else:
-           print( unicode(t) )
-           break
-   print("")
+def sentencize(s):
+    quoting = False
+    tmp = []
+    separators = [u"。" , u"?" , u"？" , u"!" , u"！"]
+    for c in s:
+        tmp.append( c )
+        if c in separators and not quoting and len(tmp)>0:
+            yield ("".join(tmp))
+            tmp = []
+        elif c==u"」":
+            quoting = False
+        elif c==u"「":
+            quoting = True
+    if len(tmp)>0:
+        yield ("".join(tmp))
+
+
+def jptest(text,lexicon,type=0):
+   for sentence in sentencize(text):
+       print(u"test run : sentence={0}".format(sentence))
+       lexicon.guess(sentence)
+       for t in buildTree(sentence,lexicon,jp_combinators,jp_terminators):
+          if type==0:
+              for r in t.leaves():
+                 if r.token in lexicon.guess_dics:
+                     print(u"{0}\t{1}\t(guess)".format(r.token , r.catname))
+                 else:
+                     print(u"{0}\t{1}".format(r.token , r.catname))
+              break
+          else:
+              print( unicode(t) )
+              break
+       print("")
 
 
 
@@ -85,7 +98,7 @@ class JPLexicon(object):
                 return 0
             elif t.startswith('KATAKANA '):
                 return 1
-            elif t.startswith('LATIN'):
+            elif t.startswith('LATIN') or t=='SPACE':
                 return 2
             elif t.startswith('FULLWIDTH LATIN'):
                 return 3
@@ -94,7 +107,7 @@ class JPLexicon(object):
             elif t.startswith('DIGIT') or t.startswith('FULLWIDTH DIGIT'):
                 return 5
             elif c==u'-':
-                return 6
+                return 2
             elif c==u'。' or c==u'、':
                 return 7
             elif c==u'ー':
@@ -127,6 +140,10 @@ class JPLexicon(object):
                w = w1+w2
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
+            elif t1==4 and (t2==7 or t2==9):
+               w = w1
+               if not w in self.static_dics and not w in self.guess_dics:
+                   self.guess_dics[w] = ["N[base]","N"]
         if len(tmp)>0 and ctype in [0,1,2,3,4]:
             w = "".join(tmp)
             if not w in self.static_dics and not w in self.guess_dics:
@@ -134,20 +151,6 @@ class JPLexicon(object):
 
 
 
-def sentencize(s):
-    quoting = False
-    tmp = []
-    for c in s:
-        tmp.append( c )
-        if c==u"。" and not quoting and len(tmp)>0:
-            yield ("".join(tmp))
-            tmp = []
-        elif c==u"」":
-            quoting = False
-        elif c==u"「":
-            quoting = True
-    if len(tmp)>0:
-        yield ("".join(tmp))
 
 """
 動詞語幹
@@ -156,6 +159,7 @@ IV:intransitive verb
 IV[neg],TV[neg]:未然形
 IV[cont],TV[cont]:連用形
 IV[euph],TV[euph]:連用形(過去)
+IV[hyp],TV[hyp]:仮定形
 
 S[q]:疑問文
 S[imp]:命令文
@@ -163,6 +167,14 @@ S[exc]:感嘆文/あいさつなど
 S[null]:主語が省略された文
 S[nom]:体言止め(nominal phrase)
 S[end]:終助詞付き
+S[te]:
+S[short]:形容詞単体の文:FwdRel(S[null] , N[base])とLApp(N/N[base] , N[base])が被るので、S[null]にしない
+S[rel]
+
+N
+N[base]:名詞
+N[adv]:副詞可能
+N[adj]:形容動詞語幹
 
 """
 if __name__=="__main__":
@@ -175,83 +187,91 @@ if __name__=="__main__":
    lexicon[u"、"] = ["(N/N)\\N" ,"COMMA"]
    lexicon[u","] = ["(N/N)\\N" ,"COMMA"]
    lexicon[u"」"] = ["RQUOTE"]
-   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)"]
+   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","(((N\\N[base])/RQUOTE)/N)"]
    lexicon[u"』"] = ["RQUOTE"]
    lexicon[u"『"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)"]
-   lexicon[u"("] = ["((N\\N)/RBRACKET)/N)","((N\\N)/RBRACKET)/S)","((N\\N)/RBRACKET)/S[null])"]
+   lexicon[u"("] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
    lexicon[u")"] = ["RBRACKET"]
+   lexicon[u"（"] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
+   lexicon[u"）"] = ["RBRACKET"] 
+   lexicon[u"・"] = ["(N/N[base])\\N[base]"]
    lexicon[u"たい"] = ["(S\\NP[sbj])\\IV[cont]" , "S[null]\\IV[cont]" ,"((S\\NP[sbj])\\NP[obj])\\TV[cont]","(S[null]\\NP[obj])\\TV[cont]"]
-   lexicon.setdefault(u"的",[]).extend( ["N[adj]\\N[base]" , "(N/N[base])\\N[base]"] )
-#   lexicon[u"など"] = ["N\\N"]
    #-- (形容詞,非自立)
    lexicon[u"にくい"] = ["(S\\NP[sbj])\\IV[cont]" , "((S\\NP[sbj])\\NP[obj])\\TV[cont]"]
-   lexicon[u"やすい"] = ["(S\\NP[sbj])\\IV[cont]" , "((S\\NP[sbj])\\NP[obj])\\TV[cont]"]
+   lexicon.setdefault(u"にくく",[]).extend( ["IV[a-cont]\\IV[cont]" , "TV[a-cont]\\TV[cont]"])
    lexicon[u"やすく"] = ["IV[a-cont]\\IV[cont]" , "TV[a-cont]\\TV[cont]"]
    lexicon[u"やすけれ"] = ["IV[a-hyp]\\IV[cont]" , "IV[a-hyp]\\IV[cont]"]
    #--
-   lexicon[u"な"] = ["(N/N[base])\\N[adj]","(N[base]/N[base])\\N[adj]"]
+   #lexicon[u"な"] = ["(N/N[base])\\N[adj]","(N[base]/N[base])\\N[adj]"]
    #-- (助詞,格助詞)
    lexicon[u"は"] = ["NP[sbj]\\N","(S/S)\\N"]
    lexicon[u"が"] = ["NP[sbj]\\N","NP[ga-acc]\\N","(S/S)\\S"]
+   lexicon.setdefault(u"すら",[]).extend( ["NP[sbj]\\N","NP[obj]\\N"] )
+   lexicon.setdefault(u"さえ",[]).extend( ["NP[sbj]\\N","NP[obj]\\N"] )
    lexicon[u"のが"] = ["NP[ga-acc]\\S[null]"]
    lexicon[u"も"] = ["(S/S)\\N","NP[sbj]\\N","NP[nom-enum]\\N","(NP[sbj]/NP[nom-enum])\\N","(NP[nom-enum]/NP[nom-enum])\\N"]
    lexicon[u"を"] = ["NP[obj]\\N"]
-   lexicon[u"や"] = ["(N/N)\\N"]
-   lexicon[u"に"] = ["((S\\NP[sbj])/(S\\NP[sbj]))\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N[adj]","(S[imp]/S[imp])\\N","(S[null]/S[null])\\N","(S[null]/S[null])\\N[adj]","((S[null]\\NP[obj])/(S[null]\\NP[obj]))\\N","(((S\\NP[sbj])\\NP[obj])/((S\\NP[sbj])\\NP[obj]))\\N[adj]"]
+   lexicon[u"に"] = ["((S\\NP[sbj])/(S\\NP[sbj]))\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N[adj]","(S[imp]/S[imp])\\N","(S[null]/S[null])\\N","(S[null]/S[null])\\N[adj]","((S[null]\\NP[obj])/(S[null]\\NP[obj]))\\N","(((S\\NP[sbj])\\NP[obj])/((S\\NP[sbj])\\NP[obj]))\\N[adj]","(IV[neg]/IV[neg])\\N","(IV[neg]/IV[neg])\\N[adj]","(TV[neg]/TV[neg])\\N"]
    lexicon[u"へ"] = lexicon[u"に"]
    lexicon[u"で"] = ["((S\\NP[sbj])/(S\\NP[sbj]))\\N","(((S\\NP[sbj])\\NP[obj])/((S\\NP[sbj])\\NP[obj]))\\N","(S[imp]/S[imp])\\N","(S[null]/S[null])\\N","(S[null]/S[null])\\N[adj]"]
-   lexicon[u"と"] = ["((S\\NP[sbj])/(S\\NP[sbj]))\\N","(S/S)\S","(N/N)\\N","(S[null]/(S\\NP[sbj]))\\S","((S\\NP[sbj])/(S\\NP[sbj]))\\S","(S[null]/S[null])\\S","(S[null]/S[null])\\S[null]","(S/S)\\S[null]","(S[null]/S[null])\\S[end]","(S/S)\\S[end]","((S\\NP[sbj])/(S\\NP[sbj]))\\S[end]","(S[null]/S[null])\\N","IV[cont]/IV[cont]","TV[cont]/TV[cont]"]
+   lexicon[u"と"] = ["((S\\NP[sbj])/(S\\NP[sbj]))\\N","(S/S)\S","(N/N)\\N","(S[null]/(S\\NP[sbj]))\\S","((S\\NP[sbj])/(S\\NP[sbj]))\\S","(S[null]/S[null])\\S","(S[null]/S[null])\\S[null]","(S/S)\\S[null]","((S\\NP[sbj])/(S\\NP[sbj]))\\S[end]","(S[null]/S[null])\\N","IV[cont]/IV[cont]","TV[cont]/TV[cont]"]
    lexicon[u"の"] = ["(N/N[base])\\N","((S[nom]\\NP[sbj])/(S[nom]\\NP[sbj]))\\N"]
-   lexicon.setdefault(u"から",[]).extend( ["((S\\NP[sbj])/(S\\NP[sbj]))\\N"] )
+   lexicon.setdefault(u"から",[]).extend( ["((S\\NP[sbj])/(S\\NP[sbj]))\\N" ,"(S[null]/S[null])\\N"] )
+   lexicon.setdefault(u"まで",[]).extend( ["((S\\NP[sbj])/(S\\NP[sbj]))\\N" ,"(S[null]/S[null])\\N"] )
    lexicon[u"ようだ"] = ["S[end]\\S","S[end]\\S[null]"]
    lexicon[u"らしい"] = ["S\\S","S[null]\\S[null]","(N/N)\\N","(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]"]
-   lexicon[u"だろう"] = ["S\\S","S[null]\\S[null]","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]"]
    lexicon.setdefault(u"のに",[]).extend( ["(S\\NP[sbj])/(S\\NP[sbj])","S[null]/S[null]"] )
    #-- (助詞,接続助詞)
    lexicon[u"ながら"] = ["((S/S)\\NP[sbj])\\IV[cont]","((S[null]/S[null])\\NP[obj])\\TV[cont]","((S/S)\\NP[obj])\\TV[cont]","(S[null]/S[null])\\IV[cont]","(S[imp]/S[imp])\\IV[cont]","((S[imp]/S[imp])\\NP[obj])\\TV[cont]"]
    lexicon.setdefault(u"つつ",[]).extend( lexicon[u"ながら"] )
-   lexicon[u"ので"] = ["(S/S)\\S","(S/S[null])\\S","(S/S)\\S[null]","(S/S[null])\\S[null]"]
+   lexicon[u"ので"] = ["(S/S[null])\\S","(S/S)\\S[null]","(S/S[null])\\S[null]","(S/S)\\S"]
    lexicon.setdefault(u"のに",[]).extend( lexicon[u"ので"] )
+   lexicon.setdefault(u"のに",[]).extend( ["(S/S)\\S" ] )
    lexicon.setdefault(u"から",[]).extend( lexicon[u"ので"] )
    lexicon.setdefault(u"が",[]).extend( lexicon[u"ので"] )
    lexicon.setdefault(u"けど",[]).extend( lexicon[u"ので"] )
    lexicon.setdefault(u"けれど",[]).extend( lexicon[u"ので"] )
    lexicon.setdefault(u"けれども",[]).extend( lexicon[u"ので"] )
    lexicon.setdefault(u"ならば",[]).extend( lexicon[u"ので"] )
+   lexicon.setdefault(u"ば",[]).extend( ["((S/S)\\NP[sbj])\\IV[hyp]","(S[null]/S[null])\\IV[hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[hyp]","((S/S)\\NP[sbj])\\IV[a-hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[a-hyp]","((S/S)\\NP[obj])\\TV[hyp]","((S[null]/S[null])\\NP[obj])\\TV[hyp]"] )
    #--
    lexicon.setdefault(u"のだ",[]).extend( ["S[null]\\S[null]","S\\S"] )
    lexicon.setdefault(u"のです",[]).extend( ["S[null]\\S[null]","S\\S"] )
    #-- (助詞,格助詞,連語)
-   lexicon[u"について"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"については"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"に於いて"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"に於いては"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"に対して"] = ["(S/S)\\N","(S[null]/S[null])\\N","(S[imp]/S[imp])\\N"]
-   lexicon[u"に対しては"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"によって"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"によっては"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"に関して"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
-   lexicon[u"に関しては"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
+   lexicon[u"について"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"については"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に於いて"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に於いては"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に対して"] = ["(S/S)\\N","(S[null]/S[null])\\N","(S[imp]/S[imp])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に対しては"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"によって"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"によっては"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に関して"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
+   lexicon[u"に関しては"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
    lexicon[u"にあたって"] = ["(S/S)\\N","(S/S)\\S[null]","(S/S)\\S"]
-   lexicon[u"によると"] = ["(S/S)\\N","(S[null]/S[null])\\N"]
+   lexicon[u"によると"] = ["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"]
    lexicon[u"による"] = ["(N/N)\\N"]
    lexicon[u"に於ける"] = ["(N/N)\\N"]
    lexicon[u"にわたる"] = ["(N/N)\\N"]
    lexicon[u"に関する"] = ["(N/N)\\N"]
    #--
-   lexicon.setdefault(u"では",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N"])
-   lexicon.setdefault(u"には",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N"])
+   lexicon.setdefault(u"では",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"])
+   lexicon.setdefault(u"には",[]).extend(["(S/S)\\N","(S[null]/S[null])\\N","((S\\NP[sbj])/(S\\NP[sbj]))\\N"])
    #--
-   lexicon[u"です"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"です"] = ["S[null]\\N","(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N[adj]"]
    lexicon[u"ではない"] = lexicon[u"です"]
-   lexicon[u"でしょう"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
-   lexicon[u"でした"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
-   lexicon[u"だった"] = lexicon[u"でした"]
-   lexicon[u"である"] = lexicon[u"でした"]
+#   lexicon[u"でしょう"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+#   lexicon[u"でした"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+#   lexicon[u"だった"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon[u"である"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
+   lexicon.setdefault(u"であっ",[]).extend( ["IV[euph]\\N[base]" , "TV[euph]\\N[base]","IV[euph]\\N[adj]" , "TV[euph]\\N[adj]"] )
+   lexicon.setdefault(u"であっ",[]).extend( ["IV[cont]\\N[base]" , "TV[cont]\\N[base]","IV[cont]\\N[adj]" , "TV[cont]\\N[adj]"] )
+   lexicon.setdefault(u"であれ",[]).extend( ["IV[hyp]\\N[base]" , "TV[hyp]\\N[base]","IV[hyp]\\N[adj]" , "TV[hyp]\\N[adj]"] )
    lexicon[u"ます"] = ["(S\\NP[sbj])\\IV[cont]","S[null]\\IV[cont]","((S\\NP[sbj])\\NP[obj])\\TV[cont]","(S[null]\\NP[obj])\\TV[cont]"]
-   lexicon[u"ました"] = lexicon[u"ます"]
+#   lexicon[u"ました"] = lexicon[u"ます"]
    lexicon[u"だ"] = ["(S\\NP[sbj])\\N","(S\\NP[sbj])\\N[adj]","((S\\NP[sbj])\\NP[ga-acc])\\N[adj]","((S\\NP[sbj])\\NP[obj])\\N[adj]","S[null]\\N","S[null]\\N[adj]"]
    lexicon[u"ない"] = ["(S\\NP[sbj])\\IV[neg]","((S\\NP[sbj])\\NP[obj])\\TV[neg]","(S\\NP[sbj])\\IV[a-cont]","(N/N)\\IV[a-cont]","((S\\NP[sbj])\\NP[obj])\\TV[neg]","S\\NP[sbj]","S[null]\\IV[neg]","(N/N)\\N[base]","(S\\NP[sbj])\\N[base]"]
+   lexicon.setdefault(u"ぬ",[]).extend(["(S\\NP[sbj])\\IV[neg]","((S\\NP[sbj])\\NP[obj])\\TV[neg]","(S\\NP[sbj])\\IV[a-cont]","(N/N)\\IV[a-cont]","((S\\NP[sbj])\\NP[obj])\\TV[neg]","S\\NP[sbj]","S[null]\\IV[neg]"])
    lexicon[u"なけれ"] = ["IV[a-hyp]\\IV[neg]","TV[a-hyp]\\TV[neg]","IV[a-hyp]\\N[base]"]
    lexicon[u"なかっ"] = ["IV[euph]\\IV[neg]","IV[cont]\\IV[neg]","IV[a-cont]\\N[base]"]
    lexicon[u"ません"] = ["(S\\NP[sbj])\\IV[neg]","((S\\NP[sbj])\\NP[obj])\\TV[neg]"]
@@ -259,11 +279,12 @@ if __name__=="__main__":
    lexicon.setdefault(u"い",[]).extend( ["IV[a-cont]\\S[te]"] )
    lexicon[u"た"] = ["(S\\NP[sbj])\\IV[euph]","(S\\NP[sbj])\\IV[a-cont]","S[null]\\IV[euph]","S[null]\\IV[a-cont]","((S\\NP[sbj])\\NP[obj])\\TV[euph]","(S[null]\\NP[obj])\\TV[euph]"]
    lexicon.setdefault(u"だ",[]).extend( ["(S\\NP[sbj])\\IV[euph]","S[null]\\IV[euph]","((S\\NP[sbj])\\NP[obj])\\TV[euph]","(S[null]\\NP[obj])\\TV[euph]"] )
-   lexicon[u"ば"] = ["((S/S)\\NP[sbj])\\IV[hyp]","(S[null]/S[null])\\IV[hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[hyp]","((S/S)\\NP[sbj])\\IV[a-hyp]","((S/(S\\NP[sbj]))\\NP[sbj])\\IV[a-hyp]","((S/S)\\NP[obj])\\TV[hyp]","((S[null]/S[null])\\NP[obj])\\TV[hyp]"]
-   lexicon[u"て"] = ["(S[te]\\NP[sbj])\\IV[cont]","((S/S)\\NP[sbj])\\IV[cont]","(S/S)\\IV[cont]","(S[null]/S[null])\\IV[cont]","(S[te]\\NP[sbj])\\IV[euph]","((S[te]\\NP[sbj])\\NP[obj])\\TV[cont]","((S\\NP[sbj])/(S\\NP[sbj]))\\TV[cont]","((S[null]/S[null])\\NP[obj])\\TV[cont]"]
-   lexicon.setdefault(u"で",[]).extend(["(S[te]\\NP[sbj])\\IV[cont]","((S/S)\\NP[sbj])\\IV[cont]","(S[te]\\NP[sbj])\\IV[euph]","((S[te]\\NP[sbj])\\NP[obj])\\TV[cont]","((S\\NP[sbj])/(S\\NP[sbj]))\\TV[cont]","((S[null]/S[null])\\NP[obj])\\TV[cont]","(S[null]/S[null])\\IV[cont]"])
+   lexicon[u"て"] = ["(S[te]\\NP[sbj])\\IV[euph]","S[te]\\IV[euph]","((S/S)\\NP[sbj])\\IV[euph]","(S/S)\\IV[euph]","(S[null]/S[null])\\IV[euph]","(S[te]\\NP[sbj])\\IV[euph]","((S[te]\\NP[sbj])\\NP[obj])\\TV[euph]","((S\\NP[sbj])/(S\\NP[sbj]))\\TV[euph]","((S[null]/S[null])\\NP[obj])\\TV[euph]"]
+   lexicon.setdefault(u"で",[]).extend(["(S[te]\\NP[sbj])\\IV[euph]","S[te]\\IV[euph]","((S/S)\\NP[sbj])\\IV[euph]","(S[te]\\NP[sbj])\\IV[euph]","((S[te]\\NP[sbj])\\NP[obj])\\TV[euph]","((S\\NP[sbj])/(S\\NP[sbj]))\\TV[euph]","((S[null]/S[null])\\NP[obj])\\TV[euph]","(S[null]/S[null])\\IV[euph]"])
+   lexicon.setdefault(u"ず",[]).extend(["((S/S)\\NP[sbj])\\IV[neg]","((S[null]/S[null])\\NP[sbj])\\IV[neg]"])
    #-- 名詞(サ変接続)+"する"
    lexicon.setdefault(u"する",[]).extend( ["(S\\NP[sbj])\\N[base]","((S\\NP[sbj])\\NP[obj])\\N[base]","(S[null]\\NP[obj])\\N[base]","S[null]\\N[base]"] )
+   lexicon.setdefault(u"し",[]).extend( ["IV[neg]\\N[base]" , "IV[cont]\\N[base]"] )
    lexicon.setdefault(u"される",[]).extend( ["(S\\NP[sbj])\\N[base]","S[null]\\N[base]"] )
    lexicon[u"させる"] = lexicon[u"する"]
    lexicon[u"できる"] = lexicon[u"する"]
@@ -297,10 +318,12 @@ if __name__=="__main__":
    lexicon.setdefault(u"ね",[]).extend(["S[end]\\S" , "S[end]\\S[null]"])
    lexicon.setdefault(u"のか",[]).extend(["S[q]\\S" , "S[q]\\S[null]"])
    lexicon.setdefault(u"なさい",[]).extend(["S[imp]\\IV[cont]" , "(S[imp]\\NP[obj])\\TV[cont]"] )
-   lexicon.setdefault(u"な",[]).extend(["S[imp]\\IV[term]" , "(S[imp]\\NP[obj])\\TV[term]"])
+   lexicon.setdefault(u"な",[]).extend(["S[imp]\\IV[term]" , "(S[imp]\\NP[obj])\\TV[term]","S[imp]\\S[null]","S[imp]\\S"])
+   lexicon.setdefault(u"なよ",[]).extend(["S[imp]\\IV[term]" , "(S[imp]\\NP[obj])\\TV[term]","S[imp]\\S[null]","S[imp]\\S"])
    #--
    lexicon.setdefault(u"のは",[]).extend(["NP[ga-acc]\\S[null]","NP[sbj]\\S[null]","NP[sbj]\\S"])
    lexicon.setdefault(u"のが",[]).extend(["NP[ga-acc]\\S[null]","NP[sbj]\\S[null]","NP[sbj]\\S"])
+   lexicon.setdefault(u"か",[]).extend( ["CONJ"] )
    lexicon.setdefault(u"と",[]).extend(["S[quote]\\S[com]","S[quote]\\S","S[quote]\\S[null]","(S[null]/S[null])\\S[imp]","(S/S)\\S[imp]"])
    lexicon.setdefault(u"とは",[]).extend( ["NP[sbj]\\S" , "NP[sbj]\\S[null]" ,"NP[sbj]\\N"] )
    lexicon.setdefault(u"しまう",[]).extend( ["S\\S[te]","S[null]\\(S[te]\\NP[sbj])"] )
@@ -310,12 +333,19 @@ if __name__=="__main__":
    lexicon.setdefault(u"こう",[]).extend( ["S[null]/S[null]" , "IV[hyp]/IV[hyp]" , "IV[cont]/IV[cont]"] )
    lexicon.setdefault(u"そう",[]).extend( ["S[null]/S[null]" , "IV[hyp]/IV[hyp]" , "IV[cont]/IV[cont]"] )
    #--
-   lexicon[u"圏論"] = ["N","N[base]"]
-   lexicon[u"射影空間"] = ["N","N[base]"]
+   lexicon.setdefault(u"の",[]).extend( ["N\\S","N\\N"] )
+   lexicon.setdefault(u"も",[]).extend( ["(S[null]/S[null])\\S[te]","(S/S)\\S[te]"] )
+   lexicon.setdefault(u"の",[]).extend( ["(S[rel]/(S\\NP[sbj]))\\N","N\\S","N\\(S\\NP[sbj])"] )
+   #--
    lexicon[u"テレビゲーム"] = ["N","N[base]"]
    lexicon[u"給付水準"] = ["N","N[base]"]
+   lexicon[u"河辺林"] = ["N","N[base]"]
+   lexicon.setdefault(u"多く",[]).extend( ["N"] )
    lexicon.setdefault(u"ミス",[]).extend( ["N","N[base]","N\\N[base]","N[base]\\N[base]"] )
+   #-- 助動詞
+   lexicon.setdefault(u"べき",[]).extend( ["(N/N[base])\\IV[term]","N[adj]\\IV[term]" ])
+   """
    for line in open( os.path.join(TOPDIR , "sentences.ja.txt") ,encoding='utf-8'):
        line = line.strip()
-       for sent in sentencize(line):
-           jptest(sent , lexicon , type=0)
+       jptest(line , lexicon , type=0)
+   """
