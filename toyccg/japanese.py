@@ -1,6 +1,13 @@
 # -*- coding:utf-8 -*-
 import sys,os,unicodedata
-from ccg import *
+from ccg import LApp,RApp,LB,RB,RSx,Conj,SkipComma,lexify,Symbol,buildTree
+
+#-- for python2/3 compatibility
+from io import open
+if sys.version_info[0] == 3:
+   basestring = str
+else:
+   basestring = basestring
 
 
 #-- special combinator for Japanese
@@ -351,10 +358,7 @@ if __name__=="__main__":
    lexicon.setdefault(u"べき",[]).extend( ["(N/N[base])\\IV[term]","N[adj]\\IV[term]" ])
    lexicon.setdefault(u"とする",[]).extend( ["(S[null]\\NP[obj])\\N"] )
    lexicon.setdefault(u"どうか",[]).extend( ["N\\S[q]"] )
-   jptest(u"この関手は圏論で重要な役割を持つが、まず基本的な性質として次の定理がある。",lexicon)
-   """
    for line in sys.stdin:
        line = line.decode('utf-8')
        line = line.strip()
        jptest(line , lexicon , type=0)
-   """

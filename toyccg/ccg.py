@@ -1,58 +1,8 @@
 # -*- coding:utf-8 -*-
 from lexicon import lexify,Symbol
 import inspect
-import re
+import re,sys
 import threading
-
-#-- for python2/3 compatibility
-from io import open
-import sys
-if sys.version_info[0] == 3:
-   basestring = str
-else:
-   basestring = basestring
-
-
-"""
-#-- Penn Part of Speech Tags
-CC:等位接続詞
-CD:数字
-DT:限定詞
-EX:there構文
-FW:外国語
-IN:前置詞/従位接続詞
-JJ:形容詞/Adjective
-JJR:形容詞(比較級)
-JJS:形容詞(最上級)
-MD:助動詞
-NN:名詞(単数形)
-NNP:固有名詞(単数形)
-NNPS:固有名詞(複数形)
-NNS:名詞(複数形)
-PDT:限定詞前置語
-POS:所有格
-PRP:人称代名詞
-PRP$:所有代名詞
-RB:副詞/Adverb
-RBR:副詞(比較級)
-RBS:副詞(最上級)
-RP:副助詞/Particle
-SYM:記号
-TO:to
-UH:間投詞
-UNC:未分類
-VB:動詞(基本形)
-VBD:動詞(過去形)
-VBG:動詞(現在分詞)
-VBN:動詞(過去分詞)
-VBP:動詞(非三単現)
-VBZ:動詞(三単現)
-WDT:関係代名詞
-WP:疑問代名詞
-WP$:疑問代名詞(所有格)
-WRB:疑問副詞
-
-"""
 
 
 BwdApp = Symbol("\\")
