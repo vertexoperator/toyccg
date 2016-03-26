@@ -23,7 +23,9 @@ toyccg is tested with
 USAGE
 -----
 
-`python toyccg/ccgparser.py < sentences.txt`
+`python -m toyccg.english < sentences.txt`
+
+`python -m toyccg.japanese < sentences.ja.txt`
 
 
 TODO
@@ -39,7 +41,7 @@ TODO
 
 * add setup.py
 
-* add document
+* write documents
 
 
 References

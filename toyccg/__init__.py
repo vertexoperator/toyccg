@@ -1,1 +1,1 @@
-from ccgparser import *
+from ccg import *
