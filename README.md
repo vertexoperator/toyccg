@@ -22,19 +22,40 @@ USAGE
 
 `python -m toyccg.japanese < sentences.ja.txt`
 
+```>>> import toyccg.japanese as jpn
+>>> jpn.run(u"ソースコードをここに書く")
+test run : sentence=ソースコードをここに書く
+ソースコード	N	(guess)
+を	NP[obj]\N
+ここ	N
+に	((S[null]\NP[obj])/(S[null]\NP[obj]))\N
+書く	S[null]\NP[obj]
+
+>>> import toyccg.japanese as jpn
+>>> r = jpn.parser.parse(u"仕事をしたくない。")
+>>> t = r.next()
+>>> for c in t.leaves():
+...     print (c.token , c.catname)
+... 
+(u'\u4ed5\u4e8b', u'N')
+(u'\u3092', 'NP[obj]\\N')
+(u'\u3057', u'TV[cont]')
+(u'\u305f\u304f', 'TV[neg]\\TV[cont]')
+(u'\u306a\u3044', '(S[null]\\NP[obj])\\TV[neg]')
+(u'\u3002', 'ROOT\\S[null]')
+```
+
 
 TODO
 ----
 
 * brush up lexicons
 
-* apply to other languages(e.g. Japanese,etc.)
+* apply to other languages(e.g. Klingon,Chinese,etc.)
 
 * semantic parsing support
 
 * supporting unsupervised inference of syntactic categories
-
-* add setup.py
 
 * solve CCG grammatical inference
 

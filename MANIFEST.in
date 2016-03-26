@@ -1,0 +1,4 @@
+include toyccg/data/ccglex.jpn
+include toyccg/data/ccglex.en
+include toyccg/data/phrases.en
+
