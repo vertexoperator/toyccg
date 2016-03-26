@@ -22,7 +22,8 @@ USAGE
 
 `python -m toyccg.japanese < sentences.ja.txt`
 
-```>>> import toyccg.japanese as jpn
+```
+>>> import toyccg.japanese as jpn
 >>> jpn.run(u"ソースコードをここに書く")
 test run : sentence=ソースコードをここに書く
 ソースコード	N	(guess)
