@@ -185,7 +185,7 @@ def run(text,type=0):
                  print(u"{0}\t{1}".format(r.token , r.catname))
               break
           else:
-              print( unicode(t) )
+              print( t.show() )
               break
        print("")
 

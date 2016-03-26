@@ -734,8 +734,8 @@ class Tree:
         assert(type(node)==str)
         self.node = node
         self.children = args
-    def __unicode__(self):
-        return (u"({0} {1})".format(self.node , u" ".join([unicode(c) for c in self.children])))
+    def show(self):
+        return (u"({0} {1})".format(self.node , u" ".join([c.show() for c in self.children])))
     def leaves(self):
         ret = []
         for t in self.children:
@@ -751,7 +751,7 @@ class Leaf:
     def __init__(self , catname , token):
        self.catname = catname
        self.token = token
-    def __unicode__(self):
+    def show(self):
        return (u"[{1}:{0}]".format(self.catname , self.token))
 
 
