@@ -783,7 +783,7 @@ def buildTree(tokens,lexicon,combinators,terminators):
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
           child = decode(left_start,right_end , path1 , chart)
-          if type(child)==unicode:
+          if type(child)==str or type(child)==unicode:
              return Leaf(catname(cat1) , child)
           else:
              return Tree(path[1] , child)
