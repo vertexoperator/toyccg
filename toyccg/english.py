@@ -169,7 +169,7 @@ def default_lexicon():
 
 
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
+parser.combinators = [LApp,RApp,LB,RB,LT("NP"),LT("S\\NP"),RT("NP"),Conj,SkipComma,Rel]
 parser.terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = " "

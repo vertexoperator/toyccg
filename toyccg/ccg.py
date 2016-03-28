@@ -562,21 +562,29 @@ def LSx(lt, rt):
 
 
 #-- X => forall a.a/(a\X)
-def RT(t):
-   assert(type(t)==list or type(t)==Symbol),repr(t)
-   if type(t)!=list and t.value()=="NP":
-      var = next(gensym)
-      return [FORALL , [var] , [FwdApp , var , [BwdApp,var,t]]]
-   return None
+def RT(categoryName):
+   category = lexify(categoryName)
+   def __fun__(t):
+       assert(type(t)==list or type(t)==Symbol),repr(t)
+       if t==category:
+           var = next(gensym)
+           return [FORALL , [var] , [FwdApp , var , [BwdApp,var,t]]]
+       return None
+   __fun__.name = "RT"
+   return __fun__
 
 
 #-- X => forall.a\(a/X)
-def LT(t):
-   assert(type(t)==list or type(t)==Symbol),repr(t)
-   if (type(t)!=list and t.value() in ["NP","PP"]) or t==[BwdApp,Symbol("S"),Symbol("NP")]:
-      var = next(gensym)
-      return [FORALL , [var] , [BwdApp , var , [FwdApp,var,t]]]
-   return None
+def LT(categoryName):
+   category = lexify(categoryName)
+   def __fun__(t):
+       assert(type(t)==list or type(t)==Symbol),repr(t)
+       if t==category:
+           var = next(gensym)
+           return [FORALL , [var] , [BwdApp , var , [FwdApp,var,t]]]
+       return None
+   __fun__.name = "LT"
+   return __fun__
 
 
 #-- CONJ X => X\X
@@ -585,6 +593,7 @@ def Conj(lt,rt):
         return [BwdApp , rt, rt]
 
 
+#-- English specific
 #-- NP S/NP => NP
 #-- This combinator is non-standard
 #-- used instead of unary type changing rule "S[dcl]/NP => NP\NP"
