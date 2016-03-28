@@ -4,7 +4,7 @@ Toy CCG Parser
 OVERVIEW
 --------
 
-compact CCG Parser
+compact CCG Parser written in python (using standard libraries only)
 
 
 Python 2.x or 3.x

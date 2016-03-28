@@ -581,7 +581,7 @@ def LT(t):
 
 #-- CONJ X => X\X
 def Conj(lt,rt):
-    if type(lt)!=list and lt.value()=="CONJ":
+    if type(lt)!=list and lt.value()=="CONJ" and (type(rt)!=list or rt[0].value()!=FORALL.value()):
         return [BwdApp , rt, rt]
 
 
@@ -602,7 +602,7 @@ def Rel(lt,rt):
 
 
 def SkipComma(lt,rt):
-    if type(rt)!=list and rt.value()=="COMMA":
+    if type(rt)!=list and rt.value()=="COMMA" and (type(lt)!=list or lt[0].value()!=FORALL.value()):
          return lt
 
 """
@@ -690,16 +690,7 @@ def buildChart(tokens,lexicon,combinators,terminators):
                      for f in binary_combinators:
                          if check_args(f,Lpath,Rpath):
                             cat2 = f(Lcat,Rcat)
-                            #---- really needs this check? ----
-                            if type(cat2)==list and cat2[0]==FORALL:
-                               pass
-                            elif cat2==[FwdApp , Symbol("S") , Symbol("N")]  or cat2==[FwdApp , Symbol("S[q]") , Symbol("N")]:
-                               pass
-                            elif cat2==[FwdApp , Symbol("S") , Symbol("N[pl]")]:
-                               pass
-                            elif cat2==[FwdApp , Symbol("NP") , Symbol("N")]:
-                               pass
-                            elif cat2!=None:
+                            if cat2!=None:
                                path = (idx1,idx2,left_end,f.__name__,max_depth+1)
                                if left_start==0 and right_end==N-1:
                                   if type(cat2)!=list and cat2.value() in terminators:
@@ -748,9 +739,9 @@ class Tree:
 
 
 class Leaf:
-    def __init__(self , catname , token):
+    def __init__(self , catname , _token):
        self.catname = catname
-       self.token = token
+       self.token = _token
     def show(self):
        return (u"[{1}:{0}]".format(self.catname , self.token))
 
@@ -775,10 +766,10 @@ def catname(t):
         return tmp
 
 
-def buildTree(tokens,lexicon,combinators,terminators):
+def buildTree(tokens,lexicon,combinators,terminators,concatenator):
    def decode(left_start , right_end , path , chart):
        if len(path)==0+1:
-          return "".join(tokens[left_start:right_end+1])
+          return concatenator.join(tokens[left_start:right_end+1])
        elif len(path)==2+1:
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
@@ -795,15 +786,16 @@ def buildTree(tokens,lexicon,combinators,terminators):
           cat2,path2 = chart[(right_start,right_end)][idx2]
           leftnode = decode(left_start,left_end , path1 , chart)
           rightnode = decode(right_start,right_end , path2, chart)
-          if not isinstance(leftnode,Tree):
+          if not isinstance(leftnode,Tree) and not isinstance(leftnode,Leaf):
                leftnode = Leaf(catname(cat1) , leftnode)
-          if not isinstance(rightnode,Tree):
+          if not isinstance(rightnode,Tree) and not isinstance(rightnode,Leaf):
                rightnode = Leaf(catname(cat2) , rightnode)
           t = Tree(path[3] , leftnode , rightnode)
           return t
-   for chart in buildChart(tokens,lexicon,combinators,terminators):
-       topcat,path = chart[(0,len(tokens)-1)][-1]
-       yield decode(0 , len(tokens)-1 , path , chart)
+   if len(tokens)>0:
+      for chart in buildChart(tokens,lexicon,combinators,terminators):
+          topcat,path = chart[(0,len(tokens)-1)][-1]
+          yield decode(0 , len(tokens)-1 , path , chart)
 
 
 
@@ -812,7 +804,8 @@ class CCGParser:
         self.combinators = [LApp,RApp]
         self.terminators = ["ROOT"]
         self.lexicon = None
+        self.concatenator = " "
     def parse(self,s):
-        for t in buildTree(s,self.lexicon , self.combinators , self.terminators):
+        for t in buildTree(s,self.lexicon , self.combinators , self.terminators , self.concatenator):
              yield t
 

@@ -163,7 +163,7 @@ parser = CCGParser()
 parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
-
+parser.concatenator = ""
 
 def run(text,type=0):
    for sentence in sentencize(text):

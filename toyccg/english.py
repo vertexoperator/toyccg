@@ -172,7 +172,7 @@ parser = CCGParser()
 parser.combinators = [LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel]
 parser.terminators = ["ROOT","S","S[q]","S[wq]","S[imp]"]
 parser.lexicon = default_lexicon()
-
+parser.concatenator = " "
 
 
 
