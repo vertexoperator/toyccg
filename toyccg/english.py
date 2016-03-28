@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from ccg import LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,Rel,CCGParser,lexify
+from ccg import LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,CCGParser,lexify,Symbol,BwdApp
 import os,sys,re
 
 #-- for python2/3 compatibility
@@ -166,6 +166,18 @@ def default_lexicon():
    lexicon[","] = [ "(((S/(S\\NP))\\NP)/COMMA)/(S/S)" ,"COMMA" ,"(S/S)\\VP[pss]" , "(NP/NP)\\NP"]
    lexicon["don't"] = ["(S\\NP)/(S\\NP)"]
    return lexicon
+
+
+
+
+#-- special rule for English
+def Rel(lt,rt):
+    if lt!=Symbol("NP"):
+       return None
+    if rt==[BwdApp , Symbol("S[pss]") , Symbol("NP")]:
+       return lt
+    return None
+
 
 
 parser = CCGParser()

@@ -593,23 +593,6 @@ def Conj(lt,rt):
         return [BwdApp , rt, rt]
 
 
-#-- English specific
-#-- NP S/NP => NP
-#-- This combinator is non-standard
-#-- used instead of unary type changing rule "S[dcl]/NP => NP\NP"
-def Swap(lt,rt):
-    if lt==Symbol("NP") and rt==[FwdApp,Symbol("S"),Symbol("NP")]:
-         return Symbol("NP")
-
-#-- special rules for English
-def Rel(lt,rt):
-    if lt!=Symbol("NP"):
-       return None
-    if rt==[BwdApp , Symbol("S[pss]") , Symbol("NP")]:
-       return lt
-    return None
-
-
 def SkipComma(lt,rt):
     if type(rt)!=list and rt.value()=="COMMA" and (type(lt)!=list or lt[0].value()!=FORALL.value()):
          return lt
