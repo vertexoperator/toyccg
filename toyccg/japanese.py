@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import sys,os,unicodedata
-from ccg import LApp,RApp,LB,RB,RSx,Conj,SkipComma,lexify,Symbol,CCGParser
+from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,lexify,Symbol,CCGParser,LT,RT
 
 #-- for python2/3 compatibility
 from io import open
@@ -13,12 +13,37 @@ else:
 
 
 #-- special combinator for Japanese
+"""
+連体節は複数パターンの解析結果を持ちうるが、どれが正しいかは、意味的に決まる
+
+(A)S=Cとなるパターン
+(1)「さんまを焼く」「火」: S\\NP[sbj] => (S,O,V,C) = (火,さんま,焼く,S)
+(2)「死んだ」「猫」:S\\NP[sbj] => (S,O,V,C) = (猫 , -- , 死んだ , S)
+
+(B)O=Cとなるパターン
+(3)「私が作った」「ケーキ」: S[rel]\\NP[obj] => (S,O,V,C) = (私,ケーキ,作った,O)
+(3)「彼が殺した」「男」: S[rel]\\NP[obj] => (S,O,V,C) = (彼、男、殺した,O)
+(3)「彼の落とした」「財布」: S[rel]\\NP[obj] => (S,O,V,C) = (彼,財布,落とした,O)
+(4)「焼いた」「パン」: ((S\\NP[sbj])\\NP[obj]) => (S,O,V,C) = (? , パン,焼いた,O)
+
+(C)S≠CかつO≠C
+(5)「私がケーキを作った」「理由」:S[rel] => (S,O,V,C) = (私,ケーキ,作った,理由)
+(5)「彼がさんまを焼く」「音」: S[rel] => (S,O,V,C) = (彼,さんま,焼く,音)
+(5)「彼が殺した」「証拠」: S[rel] => (S,O,V,C) = (彼, ? , 殺した,証拠)
+(6)「ケーキを作った」「理由」:S[null] => (S,O,V,C) = (? , ケーキ,作った,理由)
+(6)「さんまを焼く」「音」:S[null] => (S,O,V,C) = (? , さんま , 焼く、音)
+(7)「走る」「姿」 : S[null] => (S,O,V,C) = (?,?,走る、姿)
+(7)「消える」「様子」:S[null] => (S,O,V,C) = (? , -- , 消える、様子)
+
+「さんまを焼く」「光」などは、(1)か(5)か曖昧
+
+"""
 def FwdRel(lt,rt):
     if type(lt)==list or type(rt)==list:
        return None
     elif rt.value()!="N[base]":
        return None
-    elif lt.value()=="S[null]" or lt.value()=="S[rel]":
+    elif lt in [lexify(c) for c in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]]:
        return Symbol("N")
     return None
 
@@ -159,8 +184,18 @@ def default_lexicon():
 
 
 
+def Lrestrict(C):
+   def __fun__(lt,rt):
+      if type(lt)==list and lt[0].value()=="forall":
+          return C(lt,rt)
+      return None
+   __fun__.__name__ = C.__name__
+   return __fun__
+
+
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma]
+#parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma,RBx,RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma,Lrestrict(RBx),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""

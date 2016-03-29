@@ -611,6 +611,19 @@ def LCB(lt , rt):
     return LB(rt , lt)
 
 
+"""
+Warbler combinator
+BwdW: X -> ((Y\X)\X) -> Y
+BwdW(x , f) = f x x
+"""
+def BwdW(lt , rt):
+    if type(rt)==list and rt[0].value()=="\\" and type(rt[1])==list and rt[1][0].value()=="\\" and rt[1][2]==lt and rt[2]==lt:
+        return rt[1][1]
+    return None
+
+
+
+
 def buildChart(tokens,lexicon,combinators,terminators):
    def check_args(fc , path1 , path2):
        #-- restrictions on type-raising and composition
@@ -685,7 +698,7 @@ def buildChart(tokens,lexicon,combinators,terminators):
                             if cat2!=None:
                                path = (idx1,idx2,left_end,f.__name__,max_depth+1)
                                if left_start==0 and right_end==N-1:
-                                  if type(cat2)!=list and cat2.value() in terminators:
+                                  if type(cat2)!=list and catname(cat2) in terminators:
                                       chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
                                       yield chart
                                else:
@@ -766,10 +779,10 @@ def buildTree(tokens,lexicon,combinators,terminators,concatenator):
           idx = path[0]
           cat1,path1 = chart[(left_start,right_end)][idx]
           child = decode(left_start,right_end , path1 , chart)
-          if type(child)==str or type(child)==unicode:
-             return Leaf(catname(cat1) , child)
+          if isinstance(child,Leaf) or isinstance(child,Tree):
+              return Tree(path[1] , child)
           else:
-             return Tree(path[1] , child)
+              return Leaf(catname(cat1) , child)
        else:
           assert(len(path)==4+1),path
           idx1,idx2,left_end,_,_ = path
