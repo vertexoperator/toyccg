@@ -36,11 +36,10 @@ if __name__=="__main__":
    for line in sys.stdin:
        line = line.strip()
        line = line.decode('utf-8')
-       print("test:{}".format(repr(line)))
+       print(u"test:{}".format(line))
        for t in parser.parse(line):
-          print( repr(t.show()) )
           for r in t.leaves():
-              print(u"{0}\t{1}".format(repr(r.token) , r.catname))
+              print(u"{0}\t{1}".format(r.token , r.catname))
           break
        print("")
 
