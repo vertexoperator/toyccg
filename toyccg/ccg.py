@@ -562,29 +562,29 @@ def LSx(lt, rt):
 
 
 #-- X => forall a.a/(a\X)
-def RT(categoryName):
-   category = lexify(categoryName)
-   def __fun__(t):
+class RT:
+   def __init__(self , categoryName):
+       self.category = lexify(categoryName)
+       self.__name__ = self.__class__.__name__
+   def __call__(self ,t):
        assert(type(t)==list or type(t)==Symbol),repr(t)
-       if t==category:
+       if t==self.category:
            var = next(gensym)
            return [FORALL , [var] , [FwdApp , var , [BwdApp,var,t]]]
        return None
-   __fun__.name = "RT"
-   return __fun__
 
 
 #-- X => forall.a\(a/X)
-def LT(categoryName):
-   category = lexify(categoryName)
-   def __fun__(t):
+class LT:
+   def __init__(self,categoryName):
+       self.category = lexify(categoryName)
+       self.__name__ = self.__class__.__name__
+   def __call__(self,t):
        assert(type(t)==list or type(t)==Symbol),repr(t)
-       if t==category:
+       if t==self.category:
            var = next(gensym)
            return [FORALL , [var] , [BwdApp , var , [FwdApp,var,t]]]
        return None
-   __fun__.name = "LT"
-   return __fun__
 
 
 #-- CONJ X => X\X
@@ -649,8 +649,13 @@ def buildChart(tokens,lexicon,combinators,terminators):
            return False
        else:
            return True
-   unary_combinators = [f for f in combinators if len(inspect.getargspec(f).args)==1]
-   binary_combinators = [f for f in combinators if len(inspect.getargspec(f).args)==2]
+   def getNargs(f):
+       if inspect.isfunction(f):
+          return len(inspect.getargspec(f).args)
+       else:
+          return len(inspect.getargspec(f.__call__).args)-1
+   unary_combinators = [f for f in combinators if getNargs(f)==1]
+   binary_combinators = [f for f in combinators if getNargs(f)==2]
    chart = {}
    max_depth = 0
    N = len(tokens)
@@ -660,12 +665,10 @@ def buildChart(tokens,lexicon,combinators,terminators):
           #-- add type raising
           rest = []
           for idx0,(cat,_) in enumerate(chart.get((n,m),[])):
-              for f in combinators:
-                  assert(inspect.isfunction(f))
-                  if len(inspect.getargspec(f).args)==1:
-                     cat2 = f(cat)
-                     path = (idx0 , f.__name__ , max_depth)
-                     if cat2!=None:rest.append( (cat2 , path) )
+              for f in unary_combinators:
+                  cat2 = f(cat)
+                  path = (idx0 , f.__name__ , max_depth)
+                  if cat2!=None:rest.append( (cat2 , path) )
           chart[(n,m)] = chart.get((n,m),[]) + rest
    if all([any([len(chart.get((m0,m1),[]))>0 for (m0,m1) in chart.keys() if m0<=n and n<=m1]) for n in range(N)]):
       #-- modified CYK parsing
@@ -698,7 +701,7 @@ def buildChart(tokens,lexicon,combinators,terminators):
                             if cat2!=None:
                                path = (idx1,idx2,left_end,f.__name__,max_depth+1)
                                if left_start==0 and right_end==N-1:
-                                  if type(cat2)!=list and catname(cat2) in terminators:
+                                  if catname(cat2) in terminators:
                                       chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
                                       yield chart
                                else:

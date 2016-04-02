@@ -184,17 +184,19 @@ def default_lexicon():
 
 
 
-def Lrestrict(C):
-   def __fun__(lt,rt):
+class Lrestrict:
+   def __init__(self,C):
+      self.combinator = C
+      self.__name__ = C.__name__
+   def __call__(self,lt,rt):
       if type(lt)==list and lt[0].value()=="forall":
-          return C(lt,rt)
-      return None
-   __fun__.__name__ = C.__name__
-   return __fun__
+          r = self.combinator(lt,rt)
+          return r
+      else:
+          return None
 
 
 parser = CCGParser()
-#parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma,RBx,RT("NP[sbj]")]
 parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma,Lrestrict(RBx),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()

@@ -68,6 +68,9 @@ References
 
 * 日本語文法の形式理論：活用体系・統語構造・意味合成 (くろしお出版, 戸次大介, 2010)
 
+* CHINESE CCGBANK: Deep derivations and dependencies for chinese CCG parsing (2013)
+([PhD Thesis](http://ses.library.usyd.edu.au/bitstream/2123/9439/1/Tse_D_thesis.pdf))
+
 * Efficient Normal-Form Parsing for Combiantory Categorial Grammar (Jason Eisner, 1996)
 
 * Normal-form parsing for Combinatory Categorial Grammars with generalized composition and type-raising (2010)
@@ -77,4 +80,6 @@ References
 * A* CCG Parsing with a Supertag-factored Model (2014)
 ([paper](http://www.aclweb.org/anthology/D14-1107))
 
+* Weakly-Supervised Grammar-Informed Bayesian CCG Parser Learning
 
+* Automatic Construction of a Chinese Electronic Dictionary
