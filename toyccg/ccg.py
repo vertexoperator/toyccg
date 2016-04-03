@@ -661,7 +661,7 @@ def buildChart(tokens,lexicon,combinators,terminators):
    N = len(tokens)
    for n in range(N):
       for m in range(n,N):
-          chart[(n,m)] = [(c,tuple([max_depth])) for c in lexicon.get(tokens[n:m+1] , [])]
+          chart[(n,m)] = [(lexify(c),tuple([max_depth])) for c in lexicon.get(tokens[n:m+1] , [])]
           #-- add type raising
           rest = []
           for idx0,(cat,_) in enumerate(chart.get((n,m),[])):

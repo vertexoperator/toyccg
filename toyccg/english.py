@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from ccg import LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,CCGParser,lexify,Symbol,BwdApp
+from ccg import LApp,RApp,LB,RB,LT,RT,Conj,SkipComma,CCGParser,Symbol,BwdApp
 import os,sys,re
 
 #-- for python2/3 compatibility
@@ -53,10 +53,7 @@ class Lexicon(object):
         assert(type(cats)==list),toklist
         ret = []
         for c in set(cats):
-            if isinstance(c,basestring):
-                 ret.append( lexify(c) )
-            else:
-                 ret.append( c )
+            ret.append( c )
         return ret
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats

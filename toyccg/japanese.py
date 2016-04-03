@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import sys,os,unicodedata
-from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,lexify,Symbol,CCGParser,LT,RT
+from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,Symbol,CCGParser,LT,RT,catname
 
 #-- for python2/3 compatibility
 from io import open
@@ -14,6 +14,7 @@ else:
 
 #-- special combinator for Japanese
 """
+連体修飾
 連体節は複数パターンの解析結果を持ちうるが、どれが正しいかは、意味的に決まる
 
 (A)S=Cとなるパターン
@@ -43,7 +44,7 @@ def FwdRel(lt,rt):
        return None
     elif rt.value()!="N[base]":
        return None
-    elif lt in [lexify(c) for c in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]]:
+    elif catname(lt) in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]:
        return Symbol("N")
     return None
 
@@ -85,11 +86,8 @@ class JPLexicon(object):
             cats = self.guess_dics.get(w , [])
         ret = []
         for c in cats:
-            if not isinstance(c,basestring):
-                 ret.append( c )
-        for c in set([x for x in cats if isinstance(x,basestring)]):
-            ret.append( lexify(c) )
-            assert(ret[-1]!=None),("lexicon error:{0}".format(c))
+            if not c in ret:
+                ret.append( c )
         return ret
     def __setitem__(self,tok,cats):
         self.static_dics[tok] = cats
