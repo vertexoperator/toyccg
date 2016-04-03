@@ -178,6 +178,8 @@ def default_lexicon():
    lexicon[u"（"] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
    lexicon[u"）"] = ["RBRACKET"] 
    lexicon[u"・"] = ["(N/N[base])\\N[base]"]
+   lexicon[u"～"] = ["(CD/CD)\\CD"]
+   lexicon[u"-"] = ["(CD/CD)\\CD"]
    return lexicon
 
 
@@ -194,8 +196,19 @@ class Lrestrict:
           return None
 
 
+
+def SkipCommaJP(lt,rt):
+    if type(rt)==list or rt.value()!="COMMA":
+         return None
+    if type(lt)!=list and (lt.value().startswith("N[") or lt.value()=="N"):
+         return None
+    return SkipComma(lt,rt)
+
+
+
+
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipComma,Lrestrict(RBx),RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipCommaJP,Lrestrict(RBx),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
@@ -243,6 +256,8 @@ N[base]:名詞
 N[adv]:副詞可能
 N[adj]:形容動詞語幹
 
+助詞
+PP[*]:postpositional particles
 """
 if __name__=="__main__":
    for line in __stdin__:
