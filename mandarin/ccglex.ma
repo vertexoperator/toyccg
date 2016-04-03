@@ -23,6 +23,7 @@
 与	[_]	CONJ
 及	[_]	CONJ
 或	[_]	CONJ
+而	[_]	CONJ
 跟	[_]	(N/N)\N,(NP/NP)\N
 今年	[_]	(S\NP)/(S\NP)
 早上	[_]	(S\NP)/(S\NP)
@@ -41,11 +42,15 @@
 在	[_]	(S\NP)/(S\NP)
 批准	[_]	(S\NP)/(S\NP)
 这个	[_]	NP/N
+#--
+得	[_]	((S\NP)\(S\NP))/(S\NP)
 #-- 助動詞
 想	[_]	(S\NP)/(S\NP)
 要	[_]	(S\NP)/(S\NP)
 应该	[_]	(S\NP)/(S\NP)
 可以	[_]	(S\NP)/(S\NP)
+会	[_]	(S\NP)/(S\NP)
+能	[_]	(S\NP)/(S\NP)
 #-- 介詞
 在	[_]	((S\NP)/(S\NP))/NP,PP/NP
 为	[_]	((S\NP)/(S\NP))/NP
@@ -66,11 +71,15 @@
 张	[_]	(NP/N)\CD,(N/N)\CD,M
 头	[_]	(NP/N)\CD,(N/N)\CD,M
 件	[_]	(NP/N)\CD,(N/N)\CD,M
+支	[_]	(NP/N)\CD,(N/N)\CD,M
+岁	[_]	(NP/N)\CD,(N/N)\CD,M,(S\NP)\CD
 一	[_]	CD
 二	[_]	CD
 三	[_]	CD
 四	[_]	CD
 九	[_]	CD
+十	[_]	CD
+十八	[_]	CD
 两	[_]	CD
 #-- 形容詞	
 干净	[_]	S\NP
@@ -97,6 +106,7 @@
 病	[_]	S\NP
 工作	[_]	S\NP
 回来	[_]	S\NP
+游泳	[_]	S\NP
 开	[_]	S\NP,(S\NP)/NP
 生活	[_]	(S\NP)/PP
 有	[_]	(S\NP)\NP
@@ -125,6 +135,7 @@
 浪费	[_]	(S\NP)/NP
 举例	[_]	(S\NP)/NP
 介绍	[_]	(S\NP)/NP
+上传	[_]	(S\NP)/NP
 给.	[_]	((S\NP)/NP)/NP
 送	[_]	((S\NP)/NP)/NP
 教	[_]	((S\NP)/NP)/NP
@@ -132,7 +143,9 @@
 叫	[_]	((S\NP)/NP)/NP
 告诉	[_]	((S\NP)/NP)/NP
 认定	[_]	((S\NP)/(S\NP))/NP
+喜欢	[_]	(S\NP)/NP
 喜欢	[_]	(S\NP)/(S\NP)
+讨厌	[_]	(S\NP)/NP
 打算	[_]	(S\NP)/(S\NP)
 #--
 谁	[_]	S[wq]\(S/NP),S[wq]/(S\NP)
@@ -159,12 +172,15 @@
 警察	[jing3 cha2]	NP,N
 东京	[_]	NP,N
 学生	[_]	NP,N
+铅笔	[qian1 bi3]	NP,N
 医院	[yi1 yuan4]	NP,N
-熊猫	[_]	NP,N
+熊猫	[xiong2 mao1]	NP,N
+大熊猫	[da4 xiong2 mao1]	NP,N
 作业	[_]	NP,N
 地方	[_]	NP,N
 孩子	[_]	NP,N
 小说	[_]	NP,N
+日语	[_]	NP,N
 汉语	[_]	NP,N
 汉字	[_]	NP,N
 音乐	[_]	NP,N
@@ -180,5 +196,9 @@
 图书馆	[_]	NP,N
 女孩子	[_]	NP,N
 留学生	[_]	NP,N
+张三	[_]	NP,N
+李四	[_]	NP,N
+足球	[zu2 qiu2]	NP,N
+美式足球	[_]	NP,N
 钱	[_]	NP,N
 老师	[_]	N\N,NP\N,NP,N

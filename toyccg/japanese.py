@@ -224,8 +224,8 @@ def run(text,type=0):
 TV:transitive verb
 IV:intransitive verb
 IV[neg],TV[neg]:未然形
-IV[cont],TV[cont]:連用形
-IV[euph],TV[euph]:連用形(過去)
+IV[cont],TV[cont]:連用形        ->飛び(ます)
+IV[euph],TV[euph]:連用形(過去)  ->飛ん(だ)
 IV[hyp],TV[hyp]:仮定形
 
 S[q]:疑問文
@@ -248,5 +248,5 @@ if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
        line = line.strip()
-       run(line ,  type=0)
+       run(line)
 
