@@ -122,8 +122,6 @@ class JPLexicon(object):
                 return 7
             elif c==u'ー':
                 return 1
-            elif c==u'『' or c==u'』':
-                return 8
             else:
                 return 9
         words = []
@@ -148,8 +146,12 @@ class JPLexicon(object):
                  tmp = [c]
                  ctype = t
         for ((w1,t1),(w2,t2)) in zip(words,words[1:]):
-            if t1==1 and t2==4:
+            if (t1,t2) in [(1,4),(2,4)]:
                w = w1+w2
+               if not w in self.static_dics and not w in self.guess_dics:
+                   self.guess_dics[w] = ["N[base]","N"]
+            elif t1==1 or t1==4:
+               w = w1
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
             elif t1==4 and (t2==7 or t2==9):
@@ -224,8 +226,27 @@ class RSxJP:
             return r
 
 
+
+class RBxJP:
+    def __init__(self):
+        self.__name__="RBx"
+    def __call__(self,lt,rt):
+        r = RBx(lt,rt)
+        if r==None:
+            return None
+        elif type(r[1])!=list and r[1].value().startswith("N["):
+            return None
+        elif type(r[2])!=list and r[2].value().startswith("N["):
+            return None
+        elif type(r[1])==list and (r[1][1]=="N[base]" or r[1][2]=="N[base]"):
+            return None
+        else:
+            return r
+
+
+
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,RSxJP(),Conj,FwdRel,SkipCommaJP,Lrestrict(RBx),RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,RSxJP(),Conj,FwdRel,SkipCommaJP,Lrestrict(RBxJP()),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
