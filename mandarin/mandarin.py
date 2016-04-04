@@ -6,6 +6,7 @@ from ccg import LApp,RApp,LB,RB,LBx,Conj,LT,RT,SkipComma,CCGParser
 def default_lexicon():
     ret = {}
     ret[u"。"] = ["ROOT\\S" , "ROOT\\S[imp]" , "ROOT\\S[q]" , "ROOT\\S[wq]"]
+    ret[u"?"] = ["ROOT\\S[q]" , "ROOT\\S[wq]"]
     for line in open(os.path.join(os.path.dirname( os.path.abspath(__file__) ) ,"ccglex.ma")):
         line = line.strip()
         if len(line)==0:continue

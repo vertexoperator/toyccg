@@ -122,6 +122,8 @@ class JPLexicon(object):
                 return 7
             elif c==u'ー':
                 return 1
+            elif c==u'『' or c==u'』':
+                return 8
             else:
                 return 9
         words = []
@@ -205,10 +207,25 @@ def SkipCommaJP(lt,rt):
     return SkipComma(lt,rt)
 
 
+class RSxJP:
+    def __init__(self):
+        self.__name__="RSx"
+    def __call__(self,lt,rt):
+        r = RSx(lt,rt)
+        if r==None:
+            return None
+        elif type(r[1])!=list and r[1].value().startswith("N["):
+            return None
+        elif type(r[2])!=list and r[2].value().startswith("N["):
+            return None
+        elif type(r[1])==list and (r[1][1]=="N[base]" or r[1][2]=="N[base]"):
+            return None
+        else:
+            return r
 
 
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,RSx,Conj,FwdRel,SkipCommaJP,Lrestrict(RBx),RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,RSxJP(),Conj,FwdRel,SkipCommaJP,Lrestrict(RBx),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
@@ -263,5 +280,5 @@ if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
        line = line.strip()
-       run(line)
+       run(line,type=0)
 
