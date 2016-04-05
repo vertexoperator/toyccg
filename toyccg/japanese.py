@@ -42,7 +42,7 @@ else:
 def FwdRel(lt,rt):
     if type(lt)==list or type(rt)==list:
        return None
-    elif rt.value()!="N[base]":
+    elif rt.value()!="N[base]" and rt.value()!="N[mid]":
        return None
     elif catname(lt) in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]:
        return Symbol("N")
@@ -150,7 +150,7 @@ class JPLexicon(object):
                w = w1+w2
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
-            elif t1==1 or t1==4:
+            elif t1==1:
                w = w1
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
@@ -218,7 +218,11 @@ class RSxJP:
             return None
         elif type(r[1])!=list and r[1].value().startswith("N["):
             return None
+        elif type(r[1])!=list and r[1].value()=="N":
+            return None
         elif type(r[2])!=list and r[2].value().startswith("N["):
+            return None
+        elif type(r[2])!=list and r[2].value()=="N":
             return None
         elif type(r[1])==list and (r[1][1]=="N[base]" or r[1][2]=="N[base]"):
             return None
