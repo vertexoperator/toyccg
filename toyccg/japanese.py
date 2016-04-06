@@ -111,7 +111,7 @@ class JPLexicon(object):
             elif t.startswith('LATIN') or t=='SPACE':
                 return 2
             elif t.startswith('FULLWIDTH LATIN'):
-                return 3
+                return 2
             elif t.startswith('CJK'):  #-- KANJI
                 return 4
             elif t.startswith('DIGIT') or t.startswith('FULLWIDTH DIGIT'):
@@ -146,7 +146,7 @@ class JPLexicon(object):
                  tmp = [c]
                  ctype = t
         for ((w1,t1),(w2,t2)) in zip(words,words[1:]):
-            if (t1,t2) in [(1,4),(2,4)]:
+            if (t1,t2) in [(1,4),(2,4),(2,5)]:
                w = w1+w2
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
@@ -250,7 +250,7 @@ class RBxJP:
 
 
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,RSxJP(),Conj,FwdRel,SkipCommaJP,Lrestrict(RBxJP()),RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,Conj,FwdRel,SkipCommaJP,Lrestrict(RBxJP()),RT("NP[sbj]")]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
@@ -270,6 +270,9 @@ def run(text,type=0):
           else:
               print( t.show() )
               break
+       else:
+           pass
+           #assert(False)
        print("")
 
 
