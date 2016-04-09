@@ -18,7 +18,7 @@ toyccg is tested with
 USAGE
 -----
 
-`python -m toyccg.english < sentences.txt`
+`python -m toyccg.english < sentences.en.txt`
 
 `python -m toyccg.japanese < sentences.ja.txt`
 
