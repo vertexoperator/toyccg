@@ -670,6 +670,11 @@ def buildChart(tokens,lexicon,combinators,terminators):
                   path = (idx0 , f.__name__ , max_depth)
                   if cat2!=None:rest.append( (cat2 , path) )
           chart[(n,m)] = chart.get((n,m),[]) + rest
+   for cat2,_ in chart.get( (0,N-1) , []):
+       if terminators==None:
+           yield chart
+       elif catname(cat2) in terminators:
+           yield chart
    if all([any([len(chart.get((m0,m1),[]))>0 for (m0,m1) in chart.keys() if m0<=n and n<=m1]) for n in range(N)]):
       #-- modified CYK parsing
       for max_depth in range(0 , N):
@@ -701,7 +706,10 @@ def buildChart(tokens,lexicon,combinators,terminators):
                             if cat2!=None:
                                path = (idx1,idx2,left_end,f.__name__,max_depth+1)
                                if left_start==0 and right_end==N-1:
-                                  if catname(cat2) in terminators:
+                                  if terminators==None:
+                                      chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
+                                      yield chart
+                                  elif catname(cat2) in terminators:
                                       chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
                                       yield chart
                                else:
@@ -752,7 +760,8 @@ class Leaf:
        self.token = _token
     def show(self):
        return (u"[{1}:{0}]".format(self.catname , self.token))
-
+    def leaves(self):
+       return [self]
 
 
 def catname(t):
@@ -772,6 +781,42 @@ def catname(t):
         return tmp[1:-1]
     else:
         return tmp
+
+
+
+def chart2tree(chart , path0 , tokens ,concatenator=""):
+    def decode(left_start , right_end , path):
+       if len(path)==0+1:
+          return concatenator.join(tokens[left_start:right_end+1])
+       elif len(path)==2+1:
+          idx = path[0]
+          cat1,path1 = chart[(left_start,right_end)][idx]
+          child = decode(left_start,right_end , path1)
+          if isinstance(child,Leaf) or isinstance(child,Tree):
+              return Tree(path[1] , child)
+          else:
+              return Leaf(catname(cat1) , child)
+       else:
+          assert(len(path)==4+1),path
+          idx1,idx2,left_end,_,_ = path
+          right_start = left_end+1
+          cat1,path1 = chart[(left_start,left_end)][idx1]
+          cat2,path2 = chart[(right_start,right_end)][idx2]
+          leftnode = decode(left_start,left_end , path1)
+          rightnode = decode(right_start,right_end , path2)
+          if not isinstance(leftnode,Tree) and not isinstance(leftnode,Leaf):
+               leftnode = Leaf(catname(cat1) , leftnode)
+          if not isinstance(rightnode,Tree) and not isinstance(rightnode,Leaf):
+               rightnode = Leaf(catname(cat2) , rightnode)
+          t = Tree(path[3] , leftnode , rightnode)
+          return t
+    if len(path0)==1:
+        for (k,v) in chart.items():
+            if v==path0:
+                return Leaf(catname(topcat) , tokens)
+    else:
+        return decode(0 , len(tokens)-1 , path0)
+
 
 
 def buildTree(tokens,lexicon,combinators,terminators,concatenator):
@@ -803,7 +848,10 @@ def buildTree(tokens,lexicon,combinators,terminators,concatenator):
    if len(tokens)>0:
       for chart in buildChart(tokens,lexicon,combinators,terminators):
           topcat,path = chart[(0,len(tokens)-1)][-1]
-          yield decode(0 , len(tokens)-1 , path , chart)
+          if len(path)==1:
+              yield Leaf(catname(topcat) , tokens)
+          else:
+              yield decode(0 , len(tokens)-1 , path , chart)
 
 
 
@@ -816,4 +864,6 @@ class CCGParser:
     def parse(self,s):
         for t in buildTree(s,self.lexicon , self.combinators , self.terminators , self.concatenator):
              yield t
-
+    def chartparse(self,s):
+        for t in buildChart(s,self.lexicon , self.combinators , self.terminators):
+             yield t

@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import sys,os,unicodedata
-from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,Symbol,CCGParser,LT,RT,catname
+from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,Symbol,CCGParser,LT,RT,catname,chart2tree
 
 #-- for python2/3 compatibility
 from io import open
@@ -53,7 +53,7 @@ def FwdRel(lt,rt):
 def sentencize(s):
     quoting = False
     tmp = []
-    separators = [u"。" , u"?" , u"？" , u"!" , u"！"]
+    separators = [u"。" , u"?" , u"？" , u"!" , u"！",u"．"]
     for c in s:
         tmp.append( c )
         if c in separators and not quoting and len(tmp)>0:
@@ -146,7 +146,7 @@ class JPLexicon(object):
                  tmp = [c]
                  ctype = t
         for ((w1,t1),(w2,t2)) in zip(words,words[1:]):
-            if (t1,t2) in [(1,4),(2,4),(2,5)]:
+            if (t1,t2) in [(1,4),(2,4),(2,5),(4,1)]:
                w = w1+w2
                if not w in self.static_dics and not w in self.guess_dics:
                    self.guess_dics[w] = ["N[base]","N"]
@@ -168,11 +168,13 @@ class JPLexicon(object):
 def default_lexicon():
    TOPDIR = os.path.dirname(os.path.abspath(__file__))
    lexicon = JPLexicon(os.path.join(TOPDIR , "data" , "ccglex.jpn"))
-   lexicon[u"。"] = ["ROOT\\S","ROOT\\S[null]","ROOT\\S[nom]","ROOT\\S[end]","ROOT\\S[imp]","ROOT\\S[q]"]
-   lexicon[u"？"] = ["ROOT\\S[q]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
-   lexicon[u"?"] = ["ROOT\\S[q]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
+   lexicon[u"。"] = ["ROOT\\S","ROOT\\S[null]","ROOT\\S[nom]","ROOT\\S[end]","ROOT\\S[imp]","ROOT\\S[q]","ROOT\\S[wq]"]
+   lexicon[u"．"] = lexicon[u"。"]
+   lexicon[u"？"] = ["ROOT\\S[q]" , "ROOT\\S[wq]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
+   lexicon[u"?"] = ["ROOT\\S[q]" , "ROOT\\S[wq]", "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
    lexicon[u"、"] = ["(N/N)\\N" ,"COMMA"]
    lexicon[u","] = ["(N/N)\\N" ,"COMMA"]
+   lexicon[u"，"] = lexicon[u"、"]
    lexicon[u"」"] = ["RQUOTE"]
    lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","(((N\\N[base])/RQUOTE)/N)"]
    lexicon[u"』"] = ["RQUOTE"]
@@ -209,27 +211,6 @@ def SkipCommaJP(lt,rt):
     return SkipComma(lt,rt)
 
 
-class RSxJP:
-    def __init__(self):
-        self.__name__="RSx"
-    def __call__(self,lt,rt):
-        r = RSx(lt,rt)
-        if r==None:
-            return None
-        elif type(r[1])!=list and r[1].value().startswith("N["):
-            return None
-        elif type(r[1])!=list and r[1].value()=="N":
-            return None
-        elif type(r[2])!=list and r[2].value().startswith("N["):
-            return None
-        elif type(r[2])!=list and r[2].value()=="N":
-            return None
-        elif type(r[1])==list and (r[1][1]=="N[base]" or r[1][2]=="N[base]"):
-            return None
-        else:
-            return r
-
-
 
 class RBxJP:
     def __init__(self):
@@ -251,7 +232,7 @@ class RBxJP:
 
 parser = CCGParser()
 parser.combinators = [LApp,RApp,LB,RB,Conj,FwdRel,SkipCommaJP,Lrestrict(RBxJP()),RT("NP[sbj]")]
-parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[null-q]","S[nom]"]
+parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[wq]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
 
@@ -275,6 +256,76 @@ def run(text,type=0):
            #assert(False)
        print("")
 
+
+"""
+長文対応用
+読点区切りごとに分割して、計算する(失敗する場合がある)
+TODO:Treeを作ること
+
+"""
+def fastrun(text):
+    for sent in sentencize(text):
+        print(u"fastrun : sentence={0}".format(sent))
+        phrases = []
+        tmp = []
+        quoting = False
+        for n,c in enumerate(sent):
+           if c==u"「":
+               quoting = True
+           elif c==u"」":
+               quoting = False
+           if c in [u"、",u"。",u"．",u"，"]:
+               if not quoting and len(tmp)>0:
+                   phrases.append( "".join(tmp) )
+                   tmp = []
+               phrases.append( c )
+           else:
+               tmp.append(c)
+        else:
+           if len(tmp)>0:
+               phrases.append( "".join(tmp) )
+        parser.lexicon.guess( sent )
+        phraseParser = CCGParser()
+        phraseParser.combinators = parser.combinators
+        phraseParser.terminators = None
+        phraseParser.lexicon = parser.lexicon
+        phraseParser.concatenator = ""
+        chartList = []
+        for p in phrases:
+            noResult=True
+            for r in phraseParser.chartparse( p ):
+                noResult=False
+            else:
+                if not noResult:
+                    chartList.append( r )
+                else:
+                    assert(False),(repr(p))
+        sentParser = CCGParser()
+        sentParser.combinators = [LApp,RApp,SkipComma]
+        sentParser.terminators = parser.terminators
+        sentParser.concatenator = ""
+        sentParser.lexicon = {}
+        for (p,r) in zip(phrases , chartList):
+            cats = [catname(x[0]) for x in r.get( (0,len(p)-1) , [] )]
+            sentParser.lexicon.setdefault(p , []).extend( list(set(cats)) )
+        for t in sentParser.parse( sent ):
+            for n,r in enumerate(t.leaves()):
+                chart = chartList[n]
+                for (topcat,toppath) in chart[(0,len(r.token)-1)]:
+                    if catname(topcat)==r.catname:
+                        if len(toppath)!=1:
+                           t2 = chart2tree(chart , toppath , r.token)
+                           assert(t2!=None),chart
+                           for r2 in t2.leaves():
+                               if r2.token in parser.lexicon.guess_dics:
+                                   print(u"{0}\t{1}\t(guess)".format(r2.token , r2.catname))
+                               else:
+                                   print(u"{0}\t{1}".format(r2.token , r2.catname))
+                        else:
+                           print(u"{0}\t{1}".format(r.token , r.catname))
+                        break
+            break
+        print("")
 
 
 """
@@ -308,5 +359,6 @@ if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
        line = line.strip()
-       run(line,type=0)
+       #run(line,type=0)
+       fastrun(line)
 
