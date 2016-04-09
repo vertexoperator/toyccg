@@ -359,6 +359,6 @@ if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
        line = line.strip()
-       #run(line,type=0)
-       fastrun(line)
+       run(line,type=0)
+       #fastrun(line)
 
