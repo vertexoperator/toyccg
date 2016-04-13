@@ -740,9 +740,11 @@ class Tree:
     def __init__(self,node,*args):
         assert(type(node)==str)
         self.node = node
-        self.children = args
+        self.children = list(args)
     def show(self):
         return (u"({0} {1})".format(self.node , u" ".join([c.show() for c in self.children])))
+    def replace(self,idx,t):
+        self.children[idx] = t
     def leaves(self):
         ret = []
         for t in self.children:

@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import sys,os,unicodedata
-from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,Symbol,CCGParser,LT,RT,catname,chart2tree
+from ccg import LApp,RApp,LB,RB,RBx,RSx,Conj,SkipComma,Symbol,CCGParser,LT,RT,catname,chart2tree,Tree,Leaf
 
 #-- for python2/3 compatibility
 from io import open
@@ -10,6 +10,95 @@ if sys.version_info[0] == 3:
 else:
    basestring = basestring
    __stdin__ = sys.stdin
+
+
+"""
+動詞語幹
+TV:transitive verb
+IV:intransitive verb
+IV[neg]:未然形("S[neg]\\NP[sbj]")
+TV[neg]:未然形("(S[neg]\\NP[sbj])\\NP[obj]")
+IV[cont],TV[cont]:連用形        ->飛び(ます),死に(ます)
+IV[euph],TV[euph]:連用形(過去)  ->飛ん(だ),死ん(だ)
+IV[hyp],TV[hyp]:仮定形
+IV[pre],TV[pre]:推量計  -> 死の(う)、飛ぼ(う)、やろ(う)
+
+S[q]:疑問文
+S[imp]:命令文
+S[exc]:感嘆文/あいさつなど
+S[null]:主語が省略された文
+S[nom]:体言止め(nominal phrase)
+S[end]:終助詞付き
+S[te]:
+S[na]:
+S[short]:形容詞単体の文:FwdRel(S[null] , N[base])とLApp(N/N[base] , N[base])が被るので、S[null]にしない
+S[attr]:連体形
+S[rel]:連体修飾
+
+名詞類
+N
+N[base]:名詞
+N[mid]:ad hoc
+N[adv]:副詞可能
+N[adj]:形容動詞語幹
+N[verb]:動作性名詞(～する/～できる/～させる、などの接続ができる)
+
+名詞句
+NP[sbj]
+NP[obj]
+NP[ga-acc]:ad hoc
+
+助詞
+PP[*]:postpositional particles(ad hoc)
+
+
+RBxコンビネータ:
+RBxコンビネータがあると副詞などの扱いが少し楽？
+少し |- S/S
+速い |- S\\NP[sbj]
+少し速い |- RBx(S/S , S\\NP[sbj]) = S\\NP[sbj]
+
+
+激しく |- (S\\NP[sbj])/(S\\NP[sbj])
+攻撃する |- (S\\NP[sbj])\\NP[obj]
+激しく攻撃する |- RBx((S\\NP[sbj])/(S\\NP[sbj]) , (S\\NP[sbj])\\NP[obj]) = (S\\NP[sbj])\\NP[obj]
+
+激しく |- (S\\NP[sbj])\\NP[obj])/(S\\NP[sbj])\\NP[obj])
+は不要となる。
+
+
+"しかし"や"もし"などの接続詞は、通常、文頭や節の頭に来るので、S/Sという統語範疇を持つが、
+「私はしかし歴史の虚偽を軽蔑しようとはおもわない。」
+みたいな文も、文法的にOKになることを、RBxコンビネータで自然に扱える。更に
+・もし、私がこれを完食したら、...
+・私が、もしこれを完食したら、...
+・私がこれを、もし完食したら、...
+や
+・今、私は宿題をやっている。
+・私は、今宿題をやっている。
+・私は宿題を今やっている。
+などが、全て合文法的で、前者3文と後者3文がそれぞれ意味的に同一である(ニュアンスは若干異なるとは言え)。このことを考慮すると、
+(X/Y) (Y\\A)\\B => (X\\A)\\B
+のような一般化合成コンビネータも、日本語では使われるべきと思われる。
+
+英語だと、
+I usually say what I think
+Usually I say what I think
+のどちらも合法だが、
+But I say what I think.
+I but say what I think.
+だと、後者の語順は発生しない。従って、
+(X/Y) (Y\\A)/B => (X\\A)/B
+のようなコンビネータは、英語では、採用できないと思う。
+
+一方で、
+https://www.cl.cam.ac.uk/teaching/1011/L107/clark-lecture3.pdf
+などを見ると、英語でも
+X/Y (Y/A)/B => (X/A)/B
+のようなコンビネータは必要でないかと書かれている。
+
+
+"""
 
 
 #-- special combinator for Japanese
@@ -42,6 +131,8 @@ else:
 def FwdRel(lt,rt):
     if type(lt)==list or type(rt)==list:
        return None
+    elif catname(rt)=="S[nom]\\NP[sbj]" and catname(lt) in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]:
+       return rt
     elif rt.value()!="N[base]" and rt.value()!="N[mid]":
        return None
     elif catname(lt) in ["S[null]","S[rel]","S[rel]\\NP[obj]","S\\NP[sbj]"]:
@@ -72,6 +163,7 @@ class JPLexicon(object):
     def __init__(self, dic=None):
         self.static_dics = {}
         self.guess_dics = {}
+        self.phrase_dics = {}
         if dic!=None:
              for line in open(dic, encoding='utf-8'):
                  line = line.strip()
@@ -80,7 +172,12 @@ class JPLexicon(object):
                  ls = line.split('\t')
                  self.static_dics.setdefault(ls[0],[]).extend( [c for c in ls[1].split(",")] )
     def __getitem__(self,tok):
-        w = tok
+        if type(tok)==list:
+           w = "".join(tok)
+        else:
+           w = tok
+        if w in self.phrase_dics:
+            return self.phrase_dics[w]
         cats = self.static_dics.get(w , [])
         if len(cats)==0:
             cats = self.guess_dics.get(w , [])
@@ -170,15 +267,16 @@ def default_lexicon():
    lexicon = JPLexicon(os.path.join(TOPDIR , "data" , "ccglex.jpn"))
    lexicon[u"。"] = ["ROOT\\S","ROOT\\S[null]","ROOT\\S[nom]","ROOT\\S[end]","ROOT\\S[imp]","ROOT\\S[q]","ROOT\\S[wq]"]
    lexicon[u"．"] = lexicon[u"。"]
+   lexicon[u"…"] = ["S\\S"]
    lexicon[u"？"] = ["ROOT\\S[q]" , "ROOT\\S[wq]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
    lexicon[u"?"] = ["ROOT\\S[q]" , "ROOT\\S[wq]", "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
-   lexicon[u"、"] = ["(N/N)\\N" ,"COMMA"]
-   lexicon[u","] = ["(N/N)\\N" ,"COMMA"]
+   lexicon[u"、"] = ["COMMA","(N/N)\\N"]
+   lexicon[u","] = lexicon[u"、"]
    lexicon[u"，"] = lexicon[u"、"]
    lexicon[u"」"] = ["RQUOTE"]
-   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","(((N\\N[base])/RQUOTE)/N)"]
+   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","(((N\\N[base])/RQUOTE)/N)","(((N\\N)/RQUOTE)/N)"]
    lexicon[u"』"] = ["RQUOTE"]
-   lexicon[u"『"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)"]
+   lexicon[u"『"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","((N[base]/RQUOTE)/N[base])"]
    lexicon[u"("] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
    lexicon[u")"] = ["RBRACKET"]
    lexicon[u"（"] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
@@ -190,48 +288,36 @@ def default_lexicon():
 
 
 
-class Lrestrict:
-   def __init__(self,C):
-      self.combinator = C
-      self.__name__ = C.__name__
-   def __call__(self,lt,rt):
-      if type(lt)==list and lt[0].value()=="forall":
-          r = self.combinator(lt,rt)
-          return r
-      else:
-          return None
-
-
 
 def SkipCommaJP(lt,rt):
+    def check(term):
+       if type(term)!=list:
+            if term.value().startswith("N["):
+                 return False
+            elif term.value().startswith("ADJ"):
+                 return False
+            elif term.value().startswith("PP"):
+                 return False
+            elif term.value()=="N":
+                 return False
+            else:
+                 return True
+       elif term[0].value()=="forall":
+            return False
+       else:
+            assert(len(term)>=2),lt
+            return (check(term[1]) and check(term[2]))
     if type(rt)==list or rt.value()!="COMMA":
          return None
-    if type(lt)!=list and (lt.value().startswith("N[") or lt.value()=="N"):
+    elif not check(lt):
          return None
     return SkipComma(lt,rt)
 
 
 
-class RBxJP:
-    def __init__(self):
-        self.__name__="RBx"
-    def __call__(self,lt,rt):
-        r = RBx(lt,rt)
-        if r==None:
-            return None
-        elif type(r[1])!=list and r[1].value().startswith("N["):
-            return None
-        elif type(r[2])!=list and r[2].value().startswith("N["):
-            return None
-        elif type(r[1])==list and (r[1][1]=="N[base]" or r[1][2]=="N[base]"):
-            return None
-        else:
-            return r
-
-
 
 parser = CCGParser()
-parser.combinators = [LApp,RApp,LB,RB,Conj,FwdRel,SkipCommaJP,Lrestrict(RBxJP()),RT("NP[sbj]")]
+parser.combinators = [LApp,RApp,LB,RB,Conj,FwdRel,SkipCommaJP,RT("NP[sbj]"),RBx]
 parser.terminators = ["ROOT","S","S[exc]","S[imp]","S[null]","S[q]","S[wq]","S[null-q]","S[nom]"]
 parser.lexicon = default_lexicon()
 parser.concatenator = ""
@@ -259,12 +345,22 @@ def run(text,type=0):
 
 """
 長文対応用
-読点区切りごとに分割して、計算する(失敗する場合がある)
-TODO:Treeを作ること
+読点区切りごとに分割して、前から、節ごとに計算を確定していく
 
 """
 def fastrun(text):
+    def replace_all(t , treemap):
+        if not isinstance(t,Tree):
+             if t.token in treemap:
+                 return replace_all(treemap[t.token] , treemap)
+             else:
+                 return t
+        else:
+             for idx,st in enumerate(t.children):
+                  t.replace(idx,replace_all(st,treemap))
+             return t
     for sent in sentencize(text):
+        treemap = {}
         print(u"fastrun : sentence={0}".format(sent))
         phrases = []
         tmp = []
@@ -278,7 +374,7 @@ def fastrun(text):
                if not quoting and len(tmp)>0:
                    phrases.append( "".join(tmp) )
                    tmp = []
-               phrases.append( c )
+               phrases.append(c)
            else:
                tmp.append(c)
         else:
@@ -286,75 +382,88 @@ def fastrun(text):
                phrases.append( "".join(tmp) )
         parser.lexicon.guess( sent )
         phraseParser = CCGParser()
-        phraseParser.combinators = parser.combinators
+        phraseParser.combinators = parser.combinators 
         phraseParser.terminators = None
         phraseParser.lexicon = parser.lexicon
         phraseParser.concatenator = ""
-        chartList = []
-        for p in phrases:
+        chartMap = {}
+        tokenMap = {}
+        for n,p in enumerate(phrases):
             noResult=True
-            for r in phraseParser.chartparse( p ):
-                noResult=False
-            else:
-                if not noResult:
-                    chartList.append( r )
+            if n==len(phrases)-1:
+                phraseParser.terminators = parser.terminators
+            if n==0:
+                for r in phraseParser.chartparse( p ):
+                    noResult=False
                 else:
-                    assert(False),(repr(p))
-        sentParser = CCGParser()
-        sentParser.combinators = [LApp,RApp,SkipComma]
-        sentParser.terminators = parser.terminators
-        sentParser.concatenator = ""
-        sentParser.lexicon = {}
-        for (p,r) in zip(phrases , chartList):
-            cats = [catname(x[0]) for x in r.get( (0,len(p)-1) , [] )]
-            sentParser.lexicon.setdefault(p , []).extend( list(set(cats)) )
-        for t in sentParser.parse( sent ):
-            for n,r in enumerate(t.leaves()):
-                chart = chartList[n]
-                for (topcat,toppath) in chart[(0,len(r.token)-1)]:
-                    if catname(topcat)==r.catname:
-                        if len(toppath)!=1:
-                           t2 = chart2tree(chart , toppath , r.token)
-                           assert(t2!=None),chart
-                           for r2 in t2.leaves():
-                               if r2.token in parser.lexicon.guess_dics:
-                                   print(u"{0}\t{1}\t(guess)".format(r2.token , r2.catname))
-                               else:
-                                   print(u"{0}\t{1}".format(r2.token , r2.catname))
-                        else:
-                           print(u"{0}\t{1}".format(r.token , r.catname))
+                    if not noResult:
+                        key = max(r.keys() , key=lambda x:x[1]-x[0])
+                        cats = [catname(x[0]) for x in r[key]]
+                        chartMap[p] = r
+                        tokenMap[p] = p
+                    else:
+                        assert(False),(repr(p))
+            else:
+                noResult = True
+                for r in phraseParser.chartparse( p ):
+                    noResult=False
+                else:
+                    if not noResult:
+                        chartMap[p] = r
+                        tokenMap[p] = p
+                        key = max(r.keys() , key=lambda x:x[1]-x[0])
+                        cats = [catname(x[0]) for x in r[key]]
+                        phraseParser.lexicon.phrase_dics.setdefault(p ,[]).extend( list(set(cats)) )
+                noResult = True
+                for r in phraseParser.chartparse( phrases[:n] + list(p) ):
+                    noResult=False
+                    if n==len(phrases)-1:
+                        chartMap[sent] = r
+                        tokenMap[sent] = phrases[:n] + list(p)
                         break
-            break
+                else:
+                    if not noResult:
+                        key = "".join(phrases[:n+1])
+                        tokenMap[key] = phrases[:n] + list(p)
+                        chartMap[key] = r
+            key = max(r.keys() , key=lambda x:x[1]-x[0])
+            cats = [catname(x[0]) for x in r[key]]
+            phraseParser.lexicon.phrase_dics.setdefault("".join(phrases[:n+1]) ,[]).extend( list(set(cats)) )
+        r = chartMap[sent]
+        key = max(r.keys() , key=lambda x:x[1]-x[0])
+        topcat,_ = r[key][0]
+        topcat = catname(topcat)
+        toptoken = sent
+        for _ in range(len(phrases)):
+           chart = chartMap[toptoken]
+           key = max(chart.keys(),key=lambda x:x[1]-x[0])
+           _,path = [x for x in chart[key] if catname(x[0])==topcat][0]
+           if True:
+              t = chart2tree(chart , path , tokenMap[toptoken])
+              if t==None:
+                  t = Leaf(topcat , toptoken)
+              else:
+                  treemap["".join(tokenMap[toptoken])] = t
+              r = t.leaves()[0]
+              for idx in range(len(phrases)-1):
+                  if r.token=="".join(phrases[:idx+1]):
+                      break
+              else:
+                  break
+              topcat = r.catname
+              toptoken = r.token
+        toptree = treemap[sent]
+        t = replace_all(toptree , treemap)
+        for r in t.leaves():
+            if r.token in parser.lexicon.guess_dics:
+                print(u"{0}\t{1}\t(guess)".format(r.token , r.catname))
+            else:
+                print(u"{0}\t{1}".format(r.token , r.catname))
         print("")
+        phraseParser.lexicon.phrase_dics = {}
 
 
-"""
-動詞語幹
-TV:transitive verb
-IV:intransitive verb
-IV[neg],TV[neg]:未然形
-IV[cont],TV[cont]:連用形        ->飛び(ます)
-IV[euph],TV[euph]:連用形(過去)  ->飛ん(だ)
-IV[hyp],TV[hyp]:仮定形
 
-S[q]:疑問文
-S[imp]:命令文
-S[exc]:感嘆文/あいさつなど
-S[null]:主語が省略された文
-S[nom]:体言止め(nominal phrase)
-S[end]:終助詞付き
-S[te]:
-S[short]:形容詞単体の文:FwdRel(S[null] , N[base])とLApp(N/N[base] , N[base])が被るので、S[null]にしない
-S[rel]
-
-N
-N[base]:名詞
-N[adv]:副詞可能
-N[adj]:形容動詞語幹
-
-助詞
-PP[*]:postpositional particles
-"""
 if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
