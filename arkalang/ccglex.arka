@@ -1,0 +1,108 @@
+o	CONJ	[接続詞/連言]
+an	NP
+non	NP
+ti	NP
+tyu	NP
+lu	NP
+la	NP
+ans	NP
+tiis	NP
+atu	NP
+ant	NP/N
+tu	NP/N,NP
+le	NP/N,NP
+laat	NP\N
+le	(NP\NP)/(S\NP)
+l'an	(NP\NP)/((S\NP)/NP)
+ter	(S\NP)\(S\NP)	[文末純詞]
+vein	(S[adj]\NP)\(S[adj]\NP),(S\NP)\(S\NP)	[形容詞]
+lax	(S\NP)\(S\NP)
+re	S[imp]/(S\\NP)	[法副詞]
+van	(S\NP)\(S\NP)	[法副詞]
+sil	(S\NP)\(S\NP)	[法副詞]
+yu	(S\NP)\(S\NP)	[副詞/受動態]
+oma	NP
+har	NP\N	[形容詞]
+atx	NP\N,S[adj]\NP	[形容詞]
+dait	NP\N,S[adj]\NP	[形容詞]
+di	NP\N,S[adj]\NP	[形容詞]
+atx	S[adj]\NP	[形容詞]
+kai	S[adj]\NP	[形容詞]
+omo	(S[adj]\NP)	[形容詞]
+miik	N,NP	[名詞]
+lisik	N,NP	[名詞]
+ges	S[adj]\NP
+gosk	N,NP
+leika	N,NP
+lei	N,NP
+dunex	N,NP
+felka	N,NP
+soan	N,NP
+fian	N,NP
+lan	N,NP
+fis	N,NP
+xipl	N,NP
+xite	N,NP
+xelt	N,NP
+esk	N,NP
+tek	N,NP
+ridia	N,NP	[名詞/固有名詞]
+kart	N,NP	[名詞]
+xiernakea	N,NP
+ra	N,NP	[名詞]
+xaxan	N,NP
+ket	N,NP	[名詞]
+elen	N,NP	[名詞]
+seelarna	N,NP
+es	(S\NP)/(S[et]\NP)
+et	(S\NP)/NP,(S\NP)/NP[obj],(S\NP)/(S[adj]\NP),(S\NP)/(S[et]\NP)
+de	(S\NP)/NP,(S\NP)/NP[obj],(S\NP)/(S[adj]\NP),(S\NP)/(S[et]\NP)
+at	(S\NP)/NP,(S\NP)/NP[obj],(S\NP)/(S[adj]\NP)
+ku	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+taf	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+tafat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞/過去形]
+leb	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+lebat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞/過去形]
+tau	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+emat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP
+siina	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP
+ser	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP
+fitat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP
+ra	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+xa	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+xat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞/過去形]
+xen	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+met	S\NP,S[et]\NP	[自動詞]
+met	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+luna	S\NP	[自動詞]
+lunat	S\NP	[自動詞/過去形]
+miks	S\NP	[自動詞]
+miks	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞]
+fias	S\NP
+fiasat	S\NP
+fel	S\NP
+felat	S\NP	[自動詞/過去形]
+felat	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞/過去形]
+felor	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[他動詞/経過相]
+felan	N,NP	[名詞]
+vort	S\NP	[自動詞]
+vortat	S\NP	[自動詞/過去形]
+vortan	N,NP	[名詞]
+kui	S\NP,(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[動詞]
+solsat	((S\NP)/(S\NP))/NP	[使役動詞/過去形]
+kuit	S\NP,(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP	[動詞/過去形]
+ke	(S\NP)\(S\NP)	[副詞]
+ke	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP,S\NP
+ket	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP
+ker	(S\NP)/NP,(S\NP)/NP[obj],(S\NP[sbj])/NP[obj],(S\NP[sbj])/NP,S\NP
+yul	NP[obj]/NP,(S/(S/NP[obj]))/NP	[格詞]
+sol	NP[sbj]/NP	[格詞]
+ka	((S\NP)\(S\NP))/N,(S[imp]\S[imp])/NP	[格詞]
+im	((S\NP)\(S\NP))/N,(S[imp]\S[imp])/NP	[格詞]
+fol	((S\NP)\(S\NP))/N,(S[imp]\S[imp])/NP	[格詞]
+a	((S\NP)\(S\NP))/NP,(S[imp]\S[imp])/NP	[格詞]
+al	((S\NP)\(S\NP))/NP,(S[imp]\S[imp])/NP	[格詞]
+fiina	((S\NP)\(S\NP))/NP,(S[imp]\S[imp])/NP	[格詞]
+kon	((S\NP)\(S\NP))/NP,(S[imp]\S[imp])/NP	[格詞]
+ol	(S/S)\S	[格詞]
+en	((S\NP)/(S\NP))	[副詞]
