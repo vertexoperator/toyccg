@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import sys,os
-sys.path.append( os.path.join(os.path.dirname( os.path.abspath(__file__) ) , ".." , "toyccg") )
+sys.path.append( os.path.join(os.path.dirname( os.path.abspath(__file__) ) , ".." , ".." , "toyccg") )
 from ccg import LApp,RApp,LB,RB,LBx,Conj,LT,RT,SkipComma,CCGParser
 
 
