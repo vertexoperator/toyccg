@@ -625,7 +625,9 @@ def BwdW(lt , rt):
 
 
 def buildChart(tokens,lexicon,combinators,terminators):
-   def check_args(fc , path1 , path2):
+   counter = {}
+   #-- normal form parsing
+   def nf_check(fc , path1 , path2):
        #-- restrictions on type-raising and composition
        if len(path2)==3 and fc==RBx and path2[1]=="LT":
            return False
@@ -701,9 +703,11 @@ def buildChart(tokens,lexicon,combinators,terminators):
                      if not((Ldepth==max_depth and Rdepth<=max_depth) or (Rdepth==max_depth and Ldepth<=max_depth)):continue
                      if type(Lcat)==list and type(Rcat)==list and Lcat[0]==FORALL and Rcat[0]==FORALL:continue
                      for f in binary_combinators:
-                         if check_args(f,Lpath,Rpath):
+                         if nf_check(f,Lpath,Rpath):
                             cat2 = f(Lcat,Rcat)
                             if cat2!=None:
+                               key=(catname(cat2),left_start,right_end)
+                               counter[key] = counter.get(key,0)+1
                                path = (idx1,idx2,left_end,f.__name__,max_depth+1)
                                if left_start==0 and right_end==N-1:
                                   if terminators==None:
@@ -712,8 +716,8 @@ def buildChart(tokens,lexicon,combinators,terminators):
                                   elif catname(cat2) in terminators:
                                       chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )
                                       yield chart
-                               else:
-                                  new_items.append( (left_start,right_end , cat2,path) )
+                               elif counter[key]<2:
+                                  new_items.append( (left_start,right_end,cat2,path) )
                                break   #-- is it OK?
          for (left_start,right_end,cat2,path) in new_items:
              chart.setdefault( (left_start,right_end) , []).append( (cat2 , path) )

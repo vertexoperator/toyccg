@@ -30,9 +30,9 @@ S[null]:主語が省略された文
 S[nom]:体言止め(nominal phrase)
 S[end]:終助詞付き
 S[te]:
-S[na]:
 S[short]:形容詞単体の文:FwdRel(S[null] , N[base])とLApp(N/N[base] , N[base])が被るので、S[null]にしない
 S[attr]:連体形
+S[na]:形容動詞連体文
 S[rel]:連体修飾
 
 名詞類
@@ -47,6 +47,7 @@ N[verb]:動作性名詞(～する/～できる/～させる、などの接続が
 NP[sbj]
 NP[obj]
 NP[ga-acc]:ad hoc
+NP[mo]
 
 助詞
 PP[*]:postpositional particles(ad hoc)
@@ -270,11 +271,11 @@ def default_lexicon():
    lexicon[u"…"] = ["S\\S"]
    lexicon[u"？"] = ["ROOT\\S[q]" , "ROOT\\S[wq]" , "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
    lexicon[u"?"] = ["ROOT\\S[q]" , "ROOT\\S[wq]", "S[q]\\S" , "S[q]\\S[null]" , "S[q]\\S[nom]"]
-   lexicon[u"、"] = ["COMMA","(N/N)\\N"]
+   lexicon[u"、"] = ["COMMA","(N/N)\\N","(S[rel]/S[null])\S[null]"]
    lexicon[u","] = lexicon[u"、"]
    lexicon[u"，"] = lexicon[u"、"]
    lexicon[u"」"] = ["RQUOTE"]
-   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","(((N\\N[base])/RQUOTE)/N)","(((N\\N)/RQUOTE)/N)"]
+   lexicon[u"「"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","((N[base]/RQUOTE)/N[base])","(((N\\N[base])/RQUOTE)/N)","(((N\\N)/RQUOTE)/N)"]
    lexicon[u"』"] = ["RQUOTE"]
    lexicon[u"『"] = ["((S[com]/RQUOTE)/S)","((S[com]/RQUOTE)/S[null])","((N/RQUOTE)/N)","((N[base]/RQUOTE)/N[base])"]
    lexicon[u"("] = ["((N\\N)/RBRACKET)/N","((N\\N)/RBRACKET)/S","((N\\N)/RBRACKET)/S[null]"]
@@ -311,7 +312,7 @@ def SkipCommaJP(lt,rt):
          return None
     elif not check(lt):
          return None
-    return SkipComma(lt,rt)
+    return lt
 
 
 
@@ -343,131 +344,10 @@ def run(text,type=0):
        print("")
 
 
-"""
-長文対応用
-読点区切りごとに分割して、前から、節ごとに計算を確定していく
-
-"""
-def fastrun(text):
-    def replace_all(t , treemap):
-        if not isinstance(t,Tree):
-             if t.token in treemap:
-                 return replace_all(treemap[t.token] , treemap)
-             else:
-                 return t
-        else:
-             for idx,st in enumerate(t.children):
-                  t.replace(idx,replace_all(st,treemap))
-             return t
-    for sent in sentencize(text):
-        treemap = {}
-        print(u"fastrun : sentence={0}".format(sent))
-        phrases = []
-        tmp = []
-        quoting = False
-        for n,c in enumerate(sent):
-           if c==u"「":
-               quoting = True
-           elif c==u"」":
-               quoting = False
-           if c in [u"、",u"。",u"．",u"，"]:
-               if not quoting and len(tmp)>0:
-                   phrases.append( "".join(tmp) )
-                   tmp = []
-               phrases.append(c)
-           else:
-               tmp.append(c)
-        else:
-           if len(tmp)>0:
-               phrases.append( "".join(tmp) )
-        parser.lexicon.guess( sent )
-        phraseParser = CCGParser()
-        phraseParser.combinators = parser.combinators 
-        phraseParser.terminators = None
-        phraseParser.lexicon = parser.lexicon
-        phraseParser.concatenator = ""
-        chartMap = {}
-        tokenMap = {}
-        for n,p in enumerate(phrases):
-            noResult=True
-            if n==len(phrases)-1:
-                phraseParser.terminators = parser.terminators
-            if n==0:
-                for r in phraseParser.chartparse( p ):
-                    noResult=False
-                else:
-                    if not noResult:
-                        key = max(r.keys() , key=lambda x:x[1]-x[0])
-                        cats = [catname(x[0]) for x in r[key]]
-                        chartMap[p] = r
-                        tokenMap[p] = p
-                    else:
-                        assert(False),(repr(p))
-            else:
-                noResult = True
-                for r in phraseParser.chartparse( p ):
-                    noResult=False
-                else:
-                    if not noResult:
-                        chartMap[p] = r
-                        tokenMap[p] = p
-                        key = max(r.keys() , key=lambda x:x[1]-x[0])
-                        cats = [catname(x[0]) for x in r[key]]
-                        phraseParser.lexicon.phrase_dics.setdefault(p ,[]).extend( list(set(cats)) )
-                noResult = True
-                for r in phraseParser.chartparse( phrases[:n] + list(p) ):
-                    noResult=False
-                    if n==len(phrases)-1:
-                        chartMap[sent] = r
-                        tokenMap[sent] = phrases[:n] + list(p)
-                        break
-                else:
-                    if not noResult:
-                        key = "".join(phrases[:n+1])
-                        tokenMap[key] = phrases[:n] + list(p)
-                        chartMap[key] = r
-            key = max(r.keys() , key=lambda x:x[1]-x[0])
-            cats = [catname(x[0]) for x in r[key]]
-            phraseParser.lexicon.phrase_dics.setdefault("".join(phrases[:n+1]) ,[]).extend( list(set(cats)) )
-        r = chartMap[sent]
-        key = max(r.keys() , key=lambda x:x[1]-x[0])
-        topcat,_ = r[key][0]
-        topcat = catname(topcat)
-        toptoken = sent
-        for _ in range(len(phrases)):
-           chart = chartMap[toptoken]
-           key = max(chart.keys(),key=lambda x:x[1]-x[0])
-           _,path = [x for x in chart[key] if catname(x[0])==topcat][0]
-           if True:
-              t = chart2tree(chart , path , tokenMap[toptoken])
-              if t==None:
-                  t = Leaf(topcat , toptoken)
-              else:
-                  treemap["".join(tokenMap[toptoken])] = t
-              r = t.leaves()[0]
-              for idx in range(len(phrases)-1):
-                  if r.token=="".join(phrases[:idx+1]):
-                      break
-              else:
-                  break
-              topcat = r.catname
-              toptoken = r.token
-        toptree = treemap[sent]
-        t = replace_all(toptree , treemap)
-        for r in t.leaves():
-            if r.token in parser.lexicon.guess_dics:
-                print(u"{0}\t{1}\t(guess)".format(r.token , r.catname))
-            else:
-                print(u"{0}\t{1}".format(r.token , r.catname))
-        print("")
-        phraseParser.lexicon.phrase_dics = {}
-
-
 
 if __name__=="__main__":
    for line in __stdin__:
        line = line.decode('utf-8')
        line = line.strip()
        run(line,type=0)
-       #fastrun(line)
 
